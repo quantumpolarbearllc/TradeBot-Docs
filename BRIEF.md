@@ -1,39 +1,40 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-08-13 · **Phase:** design complete, no code written yet
+**Last updated:** 2026-08-14 · **Phase:** design complete, open questions closed, no code written yet
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
 
 **If you are Claude Desktop:** you are the reader, not the writer. Claude Code
 owns the repository. Anything you produce comes back as a file the owner drops
-in — see §7.
+in — see §8.
 
 ---
 
 ## 1. What is being built, in one paragraph
 
 A daily-rebalance research and execution system for **US small-cap equities**
-(~$300M–$2B, 40–60 names). It reads **SEC filings primarily** and news
-secondarily, uses an LLM to extract *stated facts* from those documents,
-converts them to point-in-time features, and runs a deterministic strategy to
-produce a target portfolio. Orders pass a risk gate and a human approval gate
-before reaching Alpaca. It is a **drift-capture system** — signals play out over
-weeks, not hours. Sequence is research → paper → small live → scale.
+(40–60 names). It reads **SEC filings primarily** and news secondarily,
+derives point-in-time features, and runs a deterministic strategy to produce a
+target portfolio. Orders pass a turnover budget, a risk gate, and a human
+approval gate before reaching the broker. It is a **drift-capture system** —
+signals play out over weeks, not hours. **v1 contains no LLM at all.** Sequence
+is backtest → paper → small live → scale.
 
 ## 2. Where things stand
 
 | | Status |
 |---|---|
-| Design | **Complete, awaiting review** |
-| Feed measurement | **Complete** — four feeds measured empirically |
+| Design | **Complete.** Original five open questions resolved |
+| Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
-| Code | **None written.** New private repo not yet created |
-| Old `TradeBot` repo | **Abandoned.** Not a reference for anything |
+| Droplet | Up, hardened, Docker installed. **Nothing running yet** |
+| Code | **None written** |
+| Old repo | Archived. Not a reference for anything |
 
 **Nothing is running. No data is being collected. No money is at risk.**
 
-## 3. The five things that decide everything else
+## 3. The seven things that decide everything else
 
 **1. EDGAR covers 100% of the universe; news covers 69%.**
 Measured across 103 random small/micro-cap companies over three months: 32 had
@@ -41,73 +42,96 @@ zero body-bearing news, and **all 32 still filed**. Small caps file *more* 8-Ks
 than large caps. Exhibit 99.1 on an 8-K carries the full press release — 35,102
 characters for a $46M company. This is why the system is filings-primary.
 
-**2. The model may never forecast.**
-An LLM's weights contain the future relative to any historical backtest. Llama 2
-prompted about Sept–Nov 2019 earnings calls mentions Covid-19 in >25% of cases.
-This bias is invisible to every point-in-time control. So the model answers
-*"what does this document say?"* and never *"is this good news?"* — extraction is
-verifiable against the source; a sentiment score is not.
+**2. v1 needs no model, because every evidence-backed signal is structured.**
+Filing-language change is a text *diff*. Insider classification is Form 4 XML
+plus history. Activist stakes are a form type. Earnings events are an 8-K item
+code. Dropping the model removes an entire subsystem, the API dependency, and
+the contamination problem below, while keeping every signal with published
+evidence behind it.
 
-**3. Transaction costs decide viability.**
-Costs run 2–4%/year for the smallest stocks — enough to erase the size premium.
-At ~100 bps round-trip, monthly turnover loses by default. The resolution is
-holding period: **decide daily, trade rarely.** Target signals (PEAD ~60 days,
-filing-language drift) reward patience.
+**3. If a model is ever added, it may extract but never forecast.**
+An LLM's weights contain the future relative to any historical backtest, and
+that bias is invisible to every point-in-time control. Extraction of stated
+facts is verifiable against the source document; a sentiment score is not.
 
-**4. Daily cadence dissolves the previous build's worst bug.**
-EDGAR timestamps are date-only. v1 added an assumed delay to that midnight floor
-and produced timestamps hours *before* filings existed — 318 contaminated
-signals. At daily cadence a filing dated D is not eligible until D+1. The
-machinery is not fixed; it is unnecessary.
+**4. Transaction costs decide viability.**
+Costs run 2–4%/year for the smallest stocks. Measured round-trip cost in the
+target band is ~95 bps, converging on the literature. The resolution is
+holding period: **decide daily, trade rarely.** Target signals (post-earnings
+drift ~60 days, filing-language drift) reward patience.
 
-**5. Small caps delist, and backtests must not hide it.**
-Excluding delisted names can quadruple apparent returns. The universe is built
-as-of each decision date with delisted names retained. **The terminal-return
-convention is still an open question.**
+**5. The price feed has no delisting return — it just stops.**
+A failed bank's series ends at $106 after a −60% day; equity actually went to
+zero. One name's series ends three months before its bankruptcy filing.
+Terminal events are therefore classified explicitly, and **anything
+unclassified defaults to −100%** so an unknown outcome can never flatter a
+backtest.
 
-## 4. Decisions already made — do not re-litigate
+**6. Split adjustment is a retroactive revision, so both price series are
+required.** One sampled name traded at $1.27 while today's adjusted series
+shows $2,540 for that same day. Adjusted prices for returns; raw prices for
+sizing and cost. A price floor applied to adjusted data would pass a penny
+stock.
 
-Full reasoning is recorded in `DECISIONS.md` in the private code repo. The
-decisions themselves are listed here so this file stands alone.
+**7. Pre-registration, not automation, is the research discipline.**
+Unattended *search* destroys the ability to believe any result, because every
+trial raises the significance threshold. A hypothesis committed before seeing
+the data may run unattended; selecting a winner after seeing results may not.
 
-- Start fresh; the previous repo is abandoned (D-001)
-- Small caps, ~$300M–$2B (D-002)
-- Filings-primary (D-003)
-- Daily rebalance, pre-open, prior-day closes (D-004)
-- 40–60 names (D-005)
-- Model extracts facts only (D-006)
-- Turnover is a budgeted constraint (D-007)
-- Feeds: EDGAR + Alpaca bars + Alpaca news in v1; Finnhub at paper stage; YouTube deferred; fundamentals and social out (D-008)
-- Docs public, code private (D-009)
-- Claude Code writes, Claude Desktop reads (D-010)
+## 4. How work continues between sessions
 
-**Three of today's conclusions reversed earlier ones in the same session.** They
-are recorded as reversals in `DECISIONS.md`, because the reasoning matters:
-small caps are *not* news-starved relative to large caps (only relative to
-mega-caps); Finnhub does *not* dominate Alpaca news (it has no usable history);
-and screening the universe by information availability is unnecessary.
+**The machine accumulates evidence continuously. Humans interpret it in
+sessions.**
 
-## 5. What is explicitly out of scope
+Runs unattended: ingest, normalisation, feature computation, pre-registered
+tests, paper trading, health reporting, and every halt/suspend/demote action.
 
-Named so it cannot creep back. The previous attempt declared six source kinds
-and implemented two.
+Never unattended: parameter search, strategy generation, or anything that
+selects a winner across variants.
 
-Fundamentals (restated → invisible lookahead) · YouTube (value unmeasured) ·
-Social (manipulation surface) · Finnhub in v1 (no backtest history) · intraday
-anything · options, macro, transcripts.
+Permanently human-gated: promotion past the compiled ceiling, widening any
+risk limit, and deploying new or changed strategy logic.
 
-## 6. What happens next
+The system makes progress while unattended. It never *decides* while
+unattended.
 
-1. Owner reviews `ARCHITECTURE.md`
-2. Create the new **private** code repo
-3. Write `CLAUDE.md` with the 18 invariants
-4. Build ingest → raw store first; **start collecting forward data immediately**, since that clock is the long pole and cannot be bought later
-5. Then normalise → extract → feature store → backtest
+## 5. Milestones
 
-**The open questions in [ARCHITECTURE.md](ARCHITECTURE.md) §9 should be closed
-before code, not during it.**
+| | Milestone | Gate |
+|---|---|---|
+| M1 | Ingest → raw store, running continuously | Data arriving daily, gaps visible |
+| M2 | Normalise → features | Features reproducible from raw |
+| **M3** | **Backtest a strategy** ← *first real decision point* | Survives cost and bias controls |
+| M4 | Paper execution | Live tracks paper |
+| M5–M6 | Capped live, then live | — |
 
-## 7. How this repo works
+**Backtest before paper trading** is deliberate: paper requires building the
+entire execution path, which is a large and dangerous surface to build before
+knowing whether the signal works.
+
+## 6. Decisions made — do not re-litigate
+
+Twenty decisions are recorded with full reasoning in `DECISIONS.md` (private
+repo). Headlines: start fresh · small caps · filings-primary · daily rebalance
+· 40–60 names · **no model in v1** · backtest-first · turnover as a budgeted
+constraint · buffer zones on universe thresholds · terminal events default to
+−100% · both price series retained · pre-registration · one live strategy by
+policy, many by schema · demotion automatic, promotion human.
+
+**Several conclusions reversed earlier ones during design.** They are recorded
+as reversals because the reasoning matters — including that small caps are not
+news-starved relative to large caps (only relative to mega-caps), that the
+second news vendor does not dominate the first (it has no usable history), and
+that forward data collection does *not* block backtesting at daily cadence.
+
+## 7. Out of scope for v1
+
+Model extraction · fundamentals (restated → invisible lookahead) · YouTube
+(value unmeasured) · social (manipulation surface) · second news vendor (no
+backtest history) · intraday anything · multi-strategy capital allocation
+(schema supports it, policy defers it) · options, macro, transcripts.
+
+## 8. How this repo works
 
 **This repo is public and contains documentation only.** The code lives in a
 separate private repo. Strategy specifics, thresholds, and credentials never
@@ -116,23 +140,19 @@ appear here.
 | File | Contents |
 |---|---|
 | **`BRIEF.md`** | This file — current state, read first |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Pipeline, components, the 18 invariants |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Pipeline, components, the 21 invariants |
 
-Three further documents live in the **private code repo**, not here. Their
-conclusions are summarised above, so you do not need them to be current — ask
-for a paste if you want the underlying detail:
-
-| Private doc | Contents |
-|---|---|
-| `FEEDS.md` | Field notes — measured API behaviour and coverage data |
-| `DECISIONS.md` | Dated decision log with full reasoning and reversals |
-| `RESEARCH.md` | Literature review, each finding tied to a design implication |
+Three further documents live in the **private code repo**: `FEEDS.md` (measured
+API behaviour), `DECISIONS.md` (dated log with full reasoning), and
+`RESEARCH.md` (literature with design implications). Their conclusions are
+summarised above, so you do not need them to be current — ask for a paste if
+you want the underlying detail.
 
 **Reading order for a cold start:** this file, then `ARCHITECTURE.md`. That is
 the whole public set and it is enough to be current.
 
-**On trusting these documents.** Everything marked MEASURED was verified against
-a live API on a stated date. Everything marked ASSUMED was not. That
+**On trusting these documents.** Everything marked MEASURED was verified
+against a live API on a stated date. Everything marked ASSUMED was not. That
 distinction is load-bearing: the previous build produced an analysis resting on
 figures that turned out never to have existed. If a number here has no marker
 and no source, treat it as unverified and say so.
