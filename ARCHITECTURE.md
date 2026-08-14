@@ -38,6 +38,7 @@ constraint rather than a preference.
 | Cap band | ~$300M–$2B, with buffer | Below $300M coverage thins and costs escalate |
 | Primary feed | SEC EDGAR | 100% universe coverage vs 69% for news |
 | **Model in v1** | **None** | Every evidence-backed signal is computable without one — see §5.3 |
+| Backtest window | **2016-01-04 → present** (~10.6 yrs) | Set by the data: daily bars start there, so earlier filings cannot be priced against |
 | First milestone | **Backtest a Tier A strategy** | Execution is only built once a signal has earned it |
 
 ## 3. Milestones
@@ -120,6 +121,32 @@ Each feed declares a **history horizon**; a query beyond it fails loudly. This
 exists because one vendor returns `HTTP 200` with `[]` for out-of-range dates,
 and a backtest reaching too far back would silently run with a feed missing.
 
+Raw payloads land in Postgres rather than in files with a database index —
+chosen for queryability, and affordable because gzipped primary documents are
+~48× smaller than the full submission packages the API reports its sizes for.
+Blob storage sits behind an interface, so moving documents out to files later
+is a swap rather than a migration.
+
+**Backfill is phased by what each phase unlocks, and runs newest-first.**
+
+| Phase | What | Unlocks |
+|---|---|---|
+| **1** | Submissions metadata, all candidate filers | PEAD, 13D/G, 8-K events — three of the four Tier A signals |
+| 2 | Form 4 XML | Insider routine vs opportunistic |
+| 3 | 10-K/10-Q documents | Lazy Prices — and ~61% of all storage |
+
+Metadata is cheap and unlocks most of the signal; full filing text is the
+expensive part and buys one signal. Phase 1 is queryable within the hour, so
+the project becomes testable long before storage is a question.
+
+Newest-first makes the backfill depth a **consequence of available disk rather
+than a decision defended up front** — the most recent data is always held, and
+reaching further back is resuming the job rather than redoing it.
+
+**The window starts 2016-01-04, because daily bars do.** Filings older than
+that cannot be priced against, so fetching them would spend storage and rate
+limit on data that can never be tested.
+
 ### 5.2 Normalise — re-runnable
 
 Raw payload → typed `Observation` or `Document`. Pure, deterministic, safe to
@@ -186,6 +213,24 @@ able to flatter a backtest. Later classification can only improve a result.
 
 **Positions key on CIK or CUSIP, never symbol** — tickers get reused, and a
 symbol-keyed series silently splices two different issuers.
+
+**The historical population is reconstructed, not inherited from today's asset
+list.** EDGAR's quarterly full-index files enumerate every filing by every
+filer, including companies that no longer exist — that is how the eligible pool
+is rebuilt as of a past date rather than from the survivors.
+
+The measurement that forces this: sampling names with usable history, **50 were
+in band today, but 105 had been in band at some point — 2.10×**. A universe
+built from today's membership tests roughly **48% of the names that actually
+existed**, and specifically the half that survived, grew, or stayed put. The
+other half delisted, went bankrupt, were acquired, or shrank out.
+
+Documents are stored only for names that held **sustained** band membership,
+which is the screen applied to itself rather than a storage compromise: with
+buffer zones and monthly reconstitution, a name that dips across the lower
+bound for a fortnight never enters the universe, so its filings are never
+needed. Metadata is kept for everyone, because the as-of universe cannot be
+rebuilt without it.
 
 ### 5.5 Feature store — point in time
 
@@ -369,7 +414,8 @@ kinds and implemented two.
 ## 10. Open questions
 
 Five earlier questions are now resolved and folded into the sections above.
-What remains:
+Buffer widths and demotion thresholds now have accepted starting values, so
+what remains is calibration plus two genuine unknowns:
 
 1. **Market impact is unmeasured.** Only spread was estimated, and only from
    daily bars. At small size impact should be minor, but "should be" is not a
@@ -377,9 +423,21 @@ What remains:
 2. **Spread estimation is unreliable for illiquid names** — the daily-bar
    estimator inverts, reading thinly-traded names as *cheaper* than liquid
    ones. Real fills from paper trading are the fix.
-3. **Buffer widths and the cost ratio are proposed, not calibrated.**
+3. **The thresholds are conventional, not calibrated.** Buffer widths, the
+   ~25% cost-to-edge ratio, and the demotion limits are all defaults awaiting
+   real data.
 4. **Universe selection beyond the screen.** The screen leaves far more
    eligible names than the target universe size, so something must rank and
-   select — and that rule is where overfitting will live.
-5. **Demotion thresholds** are starting points reflecting a risk appetite, not
-   derived values.
+   select — and that rule is where overfitting will live. **This is the one
+   that blocks M3.**
+5. **Historical market caps are not always reconstructible.** In sampling, a
+   sixth of names had no usable share-count history — mostly delisted names,
+   which is exactly the population survivorship bias is about. As-of universe
+   construction needs a fallback source or a documented rule for names that
+   cannot be rebuilt.
+6. **Whether numeric observations may skip raw-payload storage.** A filing's
+   parser is fragile and will change, so raw bytes plus re-parse is clearly
+   right. Millions of rows of OHLCV are parsed trivially and stably, and
+   storing their raw responses costs real disk to guard against a bug that
+   realistically cannot happen. Narrowing invariant 14 for numeric feeds is
+   proposed but **undecided**; it blocks the raw store schema.

@@ -28,13 +28,17 @@ is backtest → paper → small live → scale.
 | Design | **Complete.** Original five open questions resolved |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
-| Droplet | Up, hardened, Docker installed. **Nothing running yet** |
+| Droplet | Up, hardened, Docker installed, 100 GB data volume mounted, `pgdata` created and owned. **Nothing running yet** |
 | Code | **None written** |
 | Old repo | Archived. Not a reference for anything |
 
+Next build step is M1 ingest, which needs a repo skeleton, a Postgres stack,
+and a migration runner under it first. The raw store schema has one undecided
+question in it — see §10.6 of `ARCHITECTURE.md`.
+
 **Nothing is running. No data is being collected. No money is at risk.**
 
-## 3. The seven things that decide everything else
+## 3. The eight things that decide everything else
 
 **1. EDGAR covers 100% of the universe; news covers 69%.**
 Measured across 103 random small/micro-cap companies over three months: 32 had
@@ -78,6 +82,14 @@ Unattended *search* destroys the ability to believe any result, because every
 trial raises the significance threshold. A hypothesis committed before seeing
 the data may run unattended; selecting a winner after seeing results may not.
 
+**8. Twice as many names passed through the cap band as sit in it today.**
+Measured: 50 names in band now, 105 in band at some point — 2.10×. A universe
+built from today's membership would test roughly **48% of the names that
+actually existed**, and specifically the survivors. So the historical filer
+population is reconstructed from EDGAR full-index files rather than inherited
+from today's asset list. The backtest window is **2016-01-04 → present**, set
+by where daily bars begin — earlier filings cannot be priced against.
+
 ## 4. How work continues between sessions
 
 **The machine accumulates evidence continuously. Humans interpret it in
@@ -109,14 +121,22 @@ unattended.
 entire execution path, which is a large and dangerous surface to build before
 knowing whether the signal works.
 
+M1 backfills history rather than only collecting forward, phased so that
+metadata — which unlocks three of the four signals — lands first, and running
+newest-first so backfill depth is a consequence of available disk rather than a
+decision defended up front.
+
 ## 6. Decisions made — do not re-litigate
 
-Twenty decisions are recorded with full reasoning in `DECISIONS.md` (private
-repo). Headlines: start fresh · small caps · filings-primary · daily rebalance
-· 40–60 names · **no model in v1** · backtest-first · turnover as a budgeted
-constraint · buffer zones on universe thresholds · terminal events default to
-−100% · both price series retained · pre-registration · one live strategy by
-policy, many by schema · demotion automatic, promotion human.
+Twenty-six decisions are recorded with full reasoning in `DECISIONS.md`
+(private repo). Headlines: start fresh · small caps · filings-primary · daily
+rebalance · 40–60 names · **no model in v1** · backtest-first · turnover as a
+budgeted constraint · buffer zones on universe thresholds · terminal events
+default to −100% · both price series retained · pre-registration · one live
+strategy by policy, many by schema · demotion automatic, promotion human ·
+raw store in Postgres with blobs behind an interface · backfill immediately,
+phased and newest-first · historical universe reconstructed from EDGAR
+full-index · window fixed at 2016-01-04 by bar history.
 
 **Several conclusions reversed earlier ones during design.** They are recorded
 as reversals because the reasoning matters — including that small caps are not
