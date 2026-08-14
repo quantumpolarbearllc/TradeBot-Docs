@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-08-14 · **Phase:** design complete, open questions closed, no code written yet
+**Last updated:** 2026-08-14 · **Phase:** design complete; foundations built, no pipeline code yet
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -25,16 +25,18 @@ is backtest → paper → small live → scale.
 
 | | Status |
 |---|---|
-| Design | **Complete.** Original five open questions resolved |
+| Design | **Complete.** All six original open questions resolved |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
-| Droplet | Up, hardened, Docker installed, 100 GB data volume mounted, `pgdata` created and owned. **Nothing running yet** |
-| Code | **None written** |
+| Droplet | Hardened, Docker installed, 100 GB data volume mounted, deploy key in place. **Nothing running yet** |
+| Code | **Foundations only** — toolchain and CI gates, clock, trading-mode resolution, Postgres stack, migration runner, settings. No pipeline code |
 | Old repo | Archived. Not a reference for anything |
 
-Next build step is M1 ingest, which needs a repo skeleton, a Postgres stack,
-and a migration runner under it first. The raw store schema has one undecided
-question in it — see §10.6 of `ARCHITECTURE.md`.
+The foundations are the parts every later component sits on: a clock that can
+be replayed at a past instant, mode resolution that fails safe to paper,
+settings resolved once into a frozen object, and a migration runner that
+refuses to re-apply or reorder schema changes. Next is the raw store schema,
+then the first ingest adapter.
 
 **Nothing is running. No data is being collected. No money is at risk.**
 
@@ -107,6 +109,14 @@ risk limit, and deploying new or changed strategy logic.
 The system makes progress while unattended. It never *decides* while
 unattended.
 
+**And nothing is decided on an estimate.** Any number that will inform a
+decision is checked against the real thing before it is used — the API, the
+database, the actual response — and where that is impossible it is labelled
+ASSUMED with what would settle it. This is invariant 21, and it exists because
+six confident figures during design were each wrong when finally measured, by
+factors up to 48×. It applies to anyone working on this, including a Claude
+Desktop session reading this file: a plausible number is not a finding.
+
 ## 5. Milestones
 
 | | Milestone | Gate |
@@ -128,7 +138,7 @@ decision defended up front.
 
 ## 6. Decisions made — do not re-litigate
 
-Twenty-six decisions are recorded with full reasoning in `DECISIONS.md`
+Twenty-eight decisions are recorded with full reasoning in `DECISIONS.md`
 (private repo). Headlines: start fresh · small caps · filings-primary · daily
 rebalance · 40–60 names · **no model in v1** · backtest-first · turnover as a
 budgeted constraint · buffer zones on universe thresholds · terminal events
@@ -136,7 +146,8 @@ default to −100% · both price series retained · pre-registration · one live
 strategy by policy, many by schema · demotion automatic, promotion human ·
 raw store in Postgres with blobs behind an interface · backfill immediately,
 phased and newest-first · historical universe reconstructed from EDGAR
-full-index · window fixed at 2016-01-04 by bar history.
+full-index · window fixed at 2016-01-04 by bar history · raw payloads stored
+for every feed with no exception.
 
 **Several conclusions reversed earlier ones during design.** They are recorded
 as reversals because the reasoning matters — including that small caps are not

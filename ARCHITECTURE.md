@@ -358,10 +358,11 @@ ask**.
 18. Raw and adjusted prices are both required and serve different purposes: adjusted for returns, raw for sizing and cost.
 19. **Hypotheses are pre-registered.** A test specified before seeing the data may run unattended; selecting a winner after seeing results may not. Every trial is logged automatically — you cannot deflate a Sharpe by a trial count you did not record.
 20. Every reported number traces to a stored row.
+21. **Measure; do not estimate.** Any number, limit, size, rate, or behaviour that will inform a decision gets checked against the real thing — the API, the database, the actual response. Where measurement is genuinely impossible, the figure is labelled **ASSUMED**, with what would settle it and what it costs to be wrong. Six confident assertions during design were each wrong until measured, by factors up to 48×, and every one was about to decide something.
 
 **Operations**
 
-21. Claude Code writes this repo; Claude Desktop reads it. Never two writers.
+22. Claude Code writes this repo; Claude Desktop reads it. Never two writers.
 
 ## 7. Why turnover is a hard constraint
 
