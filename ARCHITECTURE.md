@@ -435,9 +435,11 @@ what remains is calibration plus two genuine unknowns:
    which is exactly the population survivorship bias is about. As-of universe
    construction needs a fallback source or a documented rule for names that
    cannot be rebuilt.
-6. **Whether numeric observations may skip raw-payload storage.** A filing's
-   parser is fragile and will change, so raw bytes plus re-parse is clearly
-   right. Millions of rows of OHLCV are parsed trivially and stably, and
-   storing their raw responses costs real disk to guard against a bug that
-   realistically cannot happen. Narrowing invariant 14 for numeric feeds is
-   proposed but **undecided**; it blocks the raw store schema.
+
+A sixth question — whether numeric feeds could skip raw-payload storage — was
+**closed by measuring it.** Gzipped bar payloads cost 25.9 B/bar against 146.5 B
+for the typed row derived from them, so keeping raw costs about half a gigabyte
+across the whole history: the saving the exception was trading for does not
+exist. It would also have been wrong on its own terms, since the adjusted price
+series is retroactively revised and re-fetching cannot recover what the vendor
+said on a past date. Invariant 14 stands with no exception.
