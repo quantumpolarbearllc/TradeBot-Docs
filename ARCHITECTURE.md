@@ -127,6 +127,20 @@ chosen for queryability, and affordable because gzipped primary documents are
 Blob storage sits behind an interface, so moving documents out to files later
 is a swap rather than a migration.
 
+**The store is content-addressed**: one row per distinct response body, keyed
+by hash, and one row per HTTP request referencing it. The filings metadata
+endpoint supports no conditional GET, so the daily sweep re-downloads every
+file in full and they are byte-identical unless the company filed. Stored per
+response that is 37.3 GB/year; content-addressed it is 2.45 GB/year, and
+nothing is lost — every fetch keeps its own `retrieved_at`, which is what the
+point-in-time gate reads.
+
+Failed fetches are recorded too, with their status. One vendor answers
+throttling with a styled HTML error page under `503`, and status is the only
+thing that distinguishes it from a document. Both tables are append-only,
+enforced by the database: re-parsing is how a mistake gets fixed, and editing
+the record is how a backtest becomes unfalsifiable.
+
 **Backfill is phased by what each phase unlocks, and runs newest-first.**
 
 | Phase | What | Unlocks |
@@ -358,7 +372,7 @@ ask**.
 18. Raw and adjusted prices are both required and serve different purposes: adjusted for returns, raw for sizing and cost.
 19. **Hypotheses are pre-registered.** A test specified before seeing the data may run unattended; selecting a winner after seeing results may not. Every trial is logged automatically — you cannot deflate a Sharpe by a trial count you did not record.
 20. Every reported number traces to a stored row.
-21. **Measure; do not estimate.** Any number, limit, size, rate, or behaviour that will inform a decision gets checked against the real thing — the API, the database, the actual response. Where measurement is genuinely impossible, the figure is labelled **ASSUMED**, with what would settle it and what it costs to be wrong. Six confident assertions during design were each wrong until measured, by factors up to 48×, and every one was about to decide something.
+21. **Measure; do not estimate — and a measurement covers only what it covered.** Any number, limit, size, rate, or behaviour that will inform a decision gets checked against the real thing. Where that is impossible the figure is labelled **ASSUMED**, with what would settle it and what it costs to be wrong. Generalising past what was tested — one endpoint to a feed, one host to a vendor, one tier to a plan — is worse than an open estimate, because it carries the authority of having been checked. Findings state their scope. Six confident assertions during design were each wrong until measured, by factors up to 48×, and every one was about to decide something.
 
 **Operations**
 
