@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-08-14 · **Phase:** design complete; foundations built, no pipeline code yet
+**Last updated:** 2026-08-15 · **Phase:** M1 in progress — first feed ingesting, no signals yet
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -28,17 +28,22 @@ is backtest → paper → small live → scale.
 | Design | **Complete.** All six original open questions resolved |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
-| Droplet | Hardened, Docker installed, 100 GB data volume mounted, deploy key in place. **Nothing running yet** |
-| Code | **Foundations only** — toolchain and CI gates, clock, trading-mode resolution, Postgres stack, migration runner, settings. No pipeline code |
+| Droplet | Hardened, 100 GB data volume mounted, deploy key in place, stack running |
+| Code | Foundations plus the **raw store and the first ingest adapter**. No normalisation, features, or strategy yet |
 | Old repo | Archived. Not a reference for anything |
 
 The foundations are the parts every later component sits on: a clock that can
 be replayed at a past instant, mode resolution that fails safe to paper,
 settings resolved once into a frozen object, and a migration runner that
-refuses to re-apply or reorder schema changes. Next is the raw store schema,
-then the first ingest adapter.
+refuses to re-apply or reorder schema changes.
 
-**Nothing is running. No data is being collected. No money is at risk.**
+**Filings metadata for every US filer is now collected.** The first full sweep
+covered 7,997 distinct filers in 14,840 fetches with zero failures, stored
+append-only and content-addressed at 172 MB. Next is the price substrate, then
+filing documents.
+
+**No money is at risk.** There is no strategy, no execution path, and no
+broker integration.
 
 ## 3. The eight things that decide everything else
 
@@ -138,7 +143,7 @@ decision defended up front.
 
 ## 6. Decisions made — do not re-litigate
 
-Twenty-eight decisions are recorded with full reasoning in `DECISIONS.md`
+Thirty-two decisions are recorded with full reasoning in `DECISIONS.md`
 (private repo). Headlines: start fresh · small caps · filings-primary · daily
 rebalance · 40–60 names · **no model in v1** · backtest-first · turnover as a
 budgeted constraint · buffer zones on universe thresholds · terminal events
