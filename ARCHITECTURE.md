@@ -163,8 +163,28 @@ limit on data that can never be tested.
 
 ### 5.2 Normalise — re-runnable
 
-Raw payload → typed `Observation` or `Document`. Pure, deterministic, safe to
-re-run across the whole raw store when a parser improves.
+Raw payload → typed rows. Pure, deterministic, safe to re-run across the whole
+raw store when a parser improves. **Derived tables are disposable**: they carry
+no append-only protection and are rebuilt rather than patched, which is the
+division invariant 14 actually draws — raw ingest is immutable, everything
+downstream of it is not.
+
+Three are built. **Filings** carry two timestamps, because the two EDGAR sources
+arrive apart: a daily index names a filing the morning after it is filed, while
+item codes and acceptance times arrive whenever a submissions fetch covers it. A
+feature reading an 8-K item code gates on the later one, since gating on the
+earlier would claim knowledge that did not exist yet. **Bars** keep both
+adjustments, and treat the adjusted series as a snapshot rather than a fact — a
+split rewrites it back to the beginning, so the newest fetch wins and every
+earlier version stays in the raw store. **Corporate actions** map thirteen
+differently-shaped types onto one: the security an action happened to, and what
+it became.
+
+What remains is **security identity**. Bars are symbol-keyed and filings are
+CIK-keyed, and symbols are reused across companies, so the join needs
+effective-dated identity reconstructed from dated evidence. Boundaries record
+whether they were observed or inferred, because no source states when a link
+ended.
 
 ### 5.3 Features, and why v1 has no model
 

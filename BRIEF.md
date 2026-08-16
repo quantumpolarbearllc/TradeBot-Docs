@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-08-15 · **Phase:** M1 in progress — first feed ingesting, no signals yet
+**Last updated:** 2026-08-16 · **Phase:** M1 complete, M2 in progress — data collecting daily, no signals yet
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -28,8 +28,10 @@ is backtest → paper → small live → scale.
 | Design | **Complete.** All six original open questions resolved |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
-| Droplet | Hardened, 100 GB data volume mounted, deploy key in place, stack running |
-| Code | Foundations plus the **raw store and the first ingest adapter**. No normalisation, features, or strategy yet |
+| Droplet | Hardened, 100 GB volume, stack running, **daily ingest on a timer** |
+| **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
+| **M2 — normalise** | **In progress.** Filings, bars and corporate actions done; security identity next |
+| Features, strategy, execution | Not started |
 | Old repo | Archived. Not a reference for anything |
 
 The foundations are the parts every later component sits on: a clock that can
@@ -37,10 +39,23 @@ be replayed at a past instant, mode resolution that fails safe to paper,
 settings resolved once into a frozen object, and a migration runner that
 refuses to re-apply or reorder schema changes.
 
-**Filings metadata for every US filer is now collected.** The first full sweep
-covered 7,997 distinct filers in 14,840 fetches with zero failures, stored
-append-only and content-addressed at 172 MB. Next is the price substrate, then
-filing documents.
+**Both feeds are collected and current.** Filings metadata for all 7,997
+distinct US filers, and the price substrate — 47,568 symbols over the full
+window in both adjustments, plus the complete corporate actions history. A
+scheduled job brings everything forward nightly, catches up dates it missed, and
+reports when a date was never requested.
+
+**Normalisation turns those payloads into typed rows.** Filings carry two
+timestamps, because a filing is usually known to exist before its 8-K item codes
+are — using one timestamp for both would claim knowledge we did not have. Bars
+keep raw and adjusted apart, since a split rewrites the adjusted series
+retroactively. Corporate actions are mapped onto one shape: the security an
+action happened to, and what it became.
+
+**What remains in M2 is identity.** Bars are symbol-keyed and filings are
+CIK-keyed, and symbols get reused — `BBBY` covers two different companies in the
+window, and the delisted one's ticker list is now empty, so the mapping has to
+be reconstructed from dated evidence rather than looked up.
 
 **No money is at risk.** There is no strategy, no execution path, and no
 broker integration.
@@ -114,6 +129,11 @@ risk limit, and deploying new or changed strategy logic.
 The system makes progress while unattended. It never *decides* while
 unattended.
 
+**Growth is budgeted, not discovered.** Every quantity that can grow — table
+sizes, rebuild durations, disk use — carries a declared limit with the
+measurement that set it. Crossing one is reported as an expired assumption
+rather than a failure, so the response is to re-measure while it is still cheap.
+
 **And nothing is decided on an estimate.** Any number that will inform a
 decision is checked against the real thing before it is used — the API, the
 database, the actual response — and where that is impossible it is labelled
@@ -143,7 +163,7 @@ decision defended up front.
 
 ## 6. Decisions made — do not re-litigate
 
-Thirty-two decisions are recorded with full reasoning in `DECISIONS.md`
+Forty-one decisions are recorded with full reasoning in `DECISIONS.md`
 (private repo). Headlines: start fresh · small caps · filings-primary · daily
 rebalance · 40–60 names · **no model in v1** · backtest-first · turnover as a
 budgeted constraint · buffer zones on universe thresholds · terminal events
@@ -151,8 +171,10 @@ default to −100% · both price series retained · pre-registration · one live
 strategy by policy, many by schema · demotion automatic, promotion human ·
 raw store in Postgres with blobs behind an interface · backfill immediately,
 phased and newest-first · historical universe reconstructed from EDGAR
-full-index · window fixed at 2016-01-04 by bar history · raw payloads stored
-for every feed with no exception.
+full-index · window fixed at 2016-01-04 by bar history · raw payloads stored for
+every feed with no exception · price the whole symbol union and filter later ·
+the daily job reads an index rather than sweeping · derived tables are
+disposable and rebuilt, raw never is.
 
 **Several conclusions reversed earlier ones during design.** They are recorded
 as reversals because the reasoning matters — including that small caps are not
