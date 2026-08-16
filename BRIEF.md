@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-08-16 · **Phase:** M1 complete, M2 in progress — data collecting daily, no signals yet
+**Last updated:** 2026-08-15 · **Phase:** M1 complete, M2 in progress — data collecting daily, no signals yet
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -30,7 +30,7 @@ is backtest → paper → small live → scale.
 | Literature review | **Complete** |
 | Droplet | Hardened, 100 GB volume, stack running, **daily ingest on a timer** |
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
-| **M2 — normalise** | **In progress.** Filings, bars and corporate actions done; security identity next |
+| **M2 — normalise** | **In progress.** Filings, bars, corporate actions and the 13(f) securities list done; security identity is what is left |
 | Features, strategy, execution | Not started |
 | Old repo | Archived. Not a reference for anything |
 
@@ -52,13 +52,24 @@ keep raw and adjusted apart, since a split rewrites the adjusted series
 retroactively. Corporate actions are mapped onto one shape: the security an
 action happened to, and what it became.
 
+**A fourth normaliser reads the 13(f) securities list**, the only source found
+that says what a security *is* — common stock, warrant, unit, right — which the
+universe screen needs and neither vendor supplies. It is published as a
+mainframe report rendered to PDF for 120 of 121 quarters, and the columns are
+recovered from each document's own header row rather than from fixed offsets.
+Against the single quarter published both as PDF and as authoritative text:
+**25,333 of 25,333 records identical**, nothing dropped, nothing invented.
+
 **What remains in M2 is identity.** Bars are symbol-keyed and filings are
 CIK-keyed, and symbols get reused — `BBBY` covers two different companies in the
 window, and the delisted one's ticker list is now empty, so the mapping has to
 be reconstructed from dated evidence rather than looked up.
 
-**No money is at risk.** There is no strategy, no execution path, and no
-broker integration.
+**No money is at risk**, and that is now a structural claim rather than an
+assurance. There is no strategy and no broker integration; beyond that, nothing
+in the package reads the trading mode, the live broker host does not appear in
+it anywhere, and every HTTP call it makes is a `GET`. An order needs a POST, so
+no code path can place one in any mode.
 
 ## 3. The eight things that decide everything else
 
@@ -156,6 +167,13 @@ Desktop session reading this file: a plausible number is not a finding.
 entire execution path, which is a large and dangerous surface to build before
 knowing whether the signal works.
 
+**One prerequisite is already known for M4.** The resolved trading mode is not
+recorded anywhere — settings are resolved once into a frozen object, so a
+process has one answer for its lifetime and leaves none behind it. That is
+harmless while nothing can trade, and M4 is the point at which it stops being
+harmless, so the mode gets persisted with every order before that milestone
+rather than after.
+
 M1 backfills history rather than only collecting forward, phased so that
 metadata — which unlocks three of the four signals — lands first, and running
 newest-first so backfill depth is a consequence of available disk rather than a
@@ -163,7 +181,7 @@ decision defended up front.
 
 ## 6. Decisions made — do not re-litigate
 
-Forty-one decisions are recorded with full reasoning in `DECISIONS.md`
+Forty-three decisions are recorded with full reasoning in `DECISIONS.md`
 (private repo). Headlines: start fresh · small caps · filings-primary · daily
 rebalance · 40–60 names · **no model in v1** · backtest-first · turnover as a
 budgeted constraint · buffer zones on universe thresholds · terminal events
@@ -182,6 +200,14 @@ news-starved relative to large caps (only relative to mega-caps), that the
 second news vendor does not dominate the first (it has no usable history), and
 that forward data collection does *not* block backtesting at daily cadence.
 
+**Two more reversals came from building rather than designing.** The 13(f)
+PDFs were accepted on measurements of 54.5% recall and 98.3% agreement;
+rebuilding the parser positionally reached 100% on both, so the earlier figures
+described a technique rather than the document. And a check-digit pass rate
+reported as "95–100%" turned out to be measuring a mixed population — real
+securities pass at 100.0000%, while the SEC's constructed option identifiers
+fail by design and are half the rows.
+
 ## 7. Out of scope for v1
 
 Model extraction · fundamentals (restated → invisible lookahead) · YouTube
@@ -198,7 +224,7 @@ appear here.
 | File | Contents |
 |---|---|
 | **`BRIEF.md`** | This file — current state, read first |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Pipeline, components, the 21 invariants |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Pipeline, components, the 22 invariants |
 
 Three further documents live in the **private code repo**: `FEEDS.md` (measured
 API behaviour), `DECISIONS.md` (dated log with full reasoning), and

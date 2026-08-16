@@ -169,7 +169,7 @@ no append-only protection and are rebuilt rather than patched, which is the
 division invariant 14 actually draws — raw ingest is immutable, everything
 downstream of it is not.
 
-Three are built. **Filings** carry two timestamps, because the two EDGAR sources
+Four are built. **Filings** carry two timestamps, because the two EDGAR sources
 arrive apart: a daily index names a filing the morning after it is filed, while
 item codes and acceptance times arrive whenever a submissions fetch covers it. A
 feature reading an 8-K item code gates on the later one, since gating on the
@@ -179,6 +179,25 @@ split rewrites it back to the beginning, so the newest fetch wins and every
 earlier version stays in the raw store. **Corporate actions** map thirteen
 differently-shaped types onto one: the security an action happened to, and what
 it became.
+
+The fourth reads the **quarterly 13(f) securities list** — the only source found
+that says what a security *is*: common stock, a warrant, a unit, a right. The
+universe screen needs that and neither vendor supplies it. One quarter of 121 is
+published as fixed-width text; the rest are a mainframe report rendered to PDF,
+where plain text extraction destroys the structure because issuer name and
+description are both space-containing *and* space-separated, so no pattern can
+find the boundary between them. Words carry positions, so the columns are
+recovered from each document's own header row rather than from fixed offsets —
+those move between eras, and hardcoding them parsed one era correctly while
+returning **zero rows** for another without complaint. Checked against the one
+quarter published both ways: 25,333 of 25,333 records identical, nothing dropped
+and nothing invented. A layout that is not recognised now raises rather than
+returning what it managed to find.
+
+The URLs are discovered rather than constructed, for the same class of reason:
+two directories are in use across the window and neither is derivable from the
+quarter, so the index page is the authority. Building the obvious filename
+resolves for **one quarter of forty-two**.
 
 What remains is **security identity**. Bars are symbol-keyed and filings are
 CIK-keyed, and symbols are reused across companies, so the join needs
@@ -392,7 +411,7 @@ ask**.
 18. Raw and adjusted prices are both required and serve different purposes: adjusted for returns, raw for sizing and cost.
 19. **Hypotheses are pre-registered.** A test specified before seeing the data may run unattended; selecting a winner after seeing results may not. Every trial is logged automatically — you cannot deflate a Sharpe by a trial count you did not record.
 20. Every reported number traces to a stored row.
-21. **Measure; do not estimate — and a measurement covers only what it covered.** Any number, limit, size, rate, or behaviour that will inform a decision gets checked against the real thing. Where that is impossible the figure is labelled **ASSUMED**, with what would settle it and what it costs to be wrong. Generalising past what was tested — one endpoint to a feed, one host to a vendor, one tier to a plan — is worse than an open estimate, because it carries the authority of having been checked. Findings state their scope. Six confident assertions during design were each wrong until measured, by factors up to 48×, and every one was about to decide something.
+21. **Measure; do not estimate — and a measurement covers only what it covered.** Any number, limit, size, rate, or behaviour that will inform a decision gets checked against the real thing. Where that is impossible the figure is labelled **ASSUMED**, with what would settle it and what it costs to be wrong. Generalising past what was tested — one endpoint to a feed, one host to a vendor, one tier to a plan — is worse than an open estimate, because it carries the authority of having been checked. Findings state their scope. Six confident assertions during design were each wrong until measured, by factors up to 48×, and every one was about to decide something. **And one instance is never a class:** before reporting anything about a *set* — endpoints, quarterly files, eras, symbols — enumerate it and sample at least three, the oldest, the newest and one between, never the first that worked, and state the sample size in the finding. This half is written as a procedure because the rule above it was followed in letter three times and still produced the wrong answer, most recently a quarterly file declared machine-readable on the strength of one file when 1 of 121 has a text version.
 
 **Operations**
 
@@ -449,8 +468,9 @@ kinds and implemented two.
 ## 10. Open questions
 
 Five earlier questions are now resolved and folded into the sections above.
-Buffer widths and demotion thresholds now have accepted starting values, so
-what remains is calibration plus two genuine unknowns:
+Buffer widths and demotion thresholds now have accepted starting values, so what
+remains is calibration, two genuine unknowns, and one gap that is dormant only
+because the code that would trip it does not exist yet:
 
 1. **Market impact is unmeasured.** Only spread was estimated, and only from
    daily bars. At small size impact should be minor, but "should be" is not a
@@ -470,8 +490,17 @@ what remains is calibration plus two genuine unknowns:
    which is exactly the population survivorship bias is about. As-of universe
    construction needs a fallback source or a documented rule for names that
    cannot be rebuilt.
+6. **The resolved trading mode is recorded nowhere, and must be before anything
+   executes.** Settings are resolved once into a frozen object so that "what was
+   the trading mode when that order went out?" has exactly one answer for the
+   life of a process — but nothing writes that answer down, so afterwards there
+   is none. Harmless today and not for long: nothing in the package reads the
+   mode, the live broker host is absent from it entirely, and every HTTP call it
+   makes is a `GET`, so no order can be placed in any mode. All three stop being
+   true at M4, which is the first code that branches on mode and the first that
+   POSTs. The mode must be persisted with every order before that, not after.
 
-A sixth question — whether numeric feeds could skip raw-payload storage — was
+A seventh question — whether numeric feeds could skip raw-payload storage — was
 **closed by measuring it.** Gzipped bar payloads cost 25.9 B/bar against 146.5 B
 for the typed row derived from them, so keeping raw costs about half a gigabyte
 across the whole history: the saving the exception was trading for does not
