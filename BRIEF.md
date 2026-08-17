@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-08-15 · **Phase:** M1 complete, M2 in progress — data collecting daily, no signals yet
+**Last updated:** 2026-08-17 · **Phase:** M1 complete, M2 built end to end — one backfill running, no signals yet
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -30,7 +30,7 @@ is backtest → paper → small live → scale.
 | Literature review | **Complete** |
 | Droplet | Hardened, 100 GB volume, stack running, **daily ingest on a timer** |
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
-| **M2 — normalise** | **In progress.** Filings, bars, corporate actions and the 13(f) securities list done; security identity is what is left |
+| **M2 — normalise** | **Built end to end.** Filings, bars, corporate actions, 13(f) share classes and security identity, plus the EDGAR full index and 13D/G ingest that identity needs. One backfill still running |
 | Features, strategy, execution | Not started |
 | Old repo | Archived. Not a reference for anything |
 
@@ -60,10 +60,23 @@ recovered from each document's own header row rather than from fixed offsets.
 Against the single quarter published both as PDF and as authoritative text:
 **25,333 of 25,333 records identical**, nothing dropped, nothing invented.
 
-**What remains in M2 is identity.** Bars are symbol-keyed and filings are
-CIK-keyed, and symbols get reused — `BBBY` covers two different companies in the
-window, and the delisted one's ticker list is now empty, so the mapping has to
-be reconstructed from dated evidence rather than looked up.
+**Identity is built, and building it exposed the largest single problem in the
+system.** Bars are symbol-keyed and filings are CIK-keyed, and symbols get
+reused — `BBBY` covers two different companies in the window. Reconstructing
+that mapping from dated evidence produced a number worth stating plainly:
+**14,060 of 21,351 priced symbols could not reach a filing at all, 65.9%**, and
+not a random two thirds — the delisted ones.
+
+The cause was structural. Corporate actions state symbol↔CUSIP across 2,120
+dated days; symbol↔CIK came only from a current-state file with no dates in it,
+so a symbol resolved if and only if it still traded today. That is survivorship
+bias arriving through the identity join rather than through a timestamp, against
+a band whose membership turns over 2.10×.
+
+**The fix is built and running.** EDGAR's quarterly full index enumerates filers
+that no longer exist, and a 13D/G filing states CUSIP and subject CIK together
+with a date, surviving delisting. Measured on 60 real filings, 57 yield an edge.
+The remaining backfill is what decides how much of the 65.9% closes.
 
 **No money is at risk**, and that is now a structural claim rather than an
 assurance. There is no strategy and no broker integration; beyond that, nothing
@@ -181,7 +194,7 @@ decision defended up front.
 
 ## 6. Decisions made — do not re-litigate
 
-Forty-three decisions are recorded with full reasoning in `DECISIONS.md`
+Forty-six decisions are recorded with full reasoning in `DECISIONS.md`
 (private repo). Headlines: start fresh · small caps · filings-primary · daily
 rebalance · 40–60 names · **no model in v1** · backtest-first · turnover as a
 budgeted constraint · buffer zones on universe thresholds · terminal events

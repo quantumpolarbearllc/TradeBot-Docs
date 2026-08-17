@@ -1,6 +1,6 @@
 # Architecture
 
-**Status:** draft for review · **Last updated:** 2026-08-14
+**Status:** draft for review · **Last updated:** 2026-08-17
 
 A daily-rebalance research and execution system for **US small-cap equities**,
 built filings-first. This document is the wireframe: what the pieces are, why
@@ -199,11 +199,36 @@ two directories are in use across the window and neither is derivable from the
 quarter, so the index page is the authority. Building the obvious filename
 resolves for **one quarter of forty-two**.
 
-What remains is **security identity**. Bars are symbol-keyed and filings are
-CIK-keyed, and symbols are reused across companies, so the join needs
-effective-dated identity reconstructed from dated evidence. Boundaries record
-whether they were observed or inferred, because no source states when a link
-ended.
+Two further feeds exist to serve identity. EDGAR's **quarterly full index**
+enumerates every filing by every filer, including filers that no longer exist —
+which is what today's ticker map cannot do, and what makes the delisted
+population reachable at all. From it, **13D/G submissions** are fetched whole,
+because one request then carries both the SEC header naming the subject company
+and the document carrying the CUSIP. That pairing is the only place in the
+system where the CUSIP↔CIK edge is stated outright, with a date, by a source
+that survives the company being delisted.
+
+A fifth builds **security identity**, in two stages that are deliberately kept
+apart. *Observations* are evidence and accumulate: a corporate action stating
+that one symbol became another on a date, a ticker map fetched on a day, a 13D/G
+naming a CUSIP and a subject company. *Intervals* are inference — no source
+states when a link **ended**, so the end of one is guessed from the start of the
+next, and every boundary records whether it was observed or inferred so a
+backtest can refuse a name near an uncertain edge. Intervals are rebuilt
+wholesale rather than patched, because the inference rule itself will improve
+and two rules' output in one table cannot be told apart afterwards.
+
+Building it produced the largest single finding of the build. Bars are
+symbol-keyed and filings are CIK-keyed, and the two evidence sources are not
+symmetric: corporate actions state symbol↔CUSIP across thousands of dated days,
+while symbol↔CIK came only from a current-state file with no dates in it. So a
+symbol resolved to a filer **if and only if it still traded today** —
+**14,060 of 21,351 priced symbols could not reach a filing, 65.9%**, and
+specifically the delisted ones. Survivorship bias arriving through the identity
+join rather than through a timestamp.
+
+The runner *reports* what it cannot resolve rather than dropping it, which is
+the only reason the gap was a number instead of a silence.
 
 ### 5.3 Features, and why v1 has no model
 
@@ -467,10 +492,15 @@ kinds and implemented two.
 
 ## 10. Open questions
 
-Five earlier questions are now resolved and folded into the sections above.
-Buffer widths and demotion thresholds now have accepted starting values, so what
-remains is calibration, two genuine unknowns, and one gap that is dormant only
-because the code that would trip it does not exist yet:
+Five earlier questions are resolved and folded into the sections above, and
+buffer widths and demotion thresholds have starting values. **Nine remain, and
+the list grew rather than shrank as M2 was built** — most of these were found by
+running the code against real data, which is the point of building it.
+
+They fall into three groups. **1–3 need real fills** and cannot be settled
+before paper trading. **4–8 gate M3**, and are one question in different
+clothes: which securities exist, which are eligible, and which can be joined to
+a filing. **9 gates M4** and nothing else.
 
 1. **Market impact is unmeasured.** Only spread was estimated, and only from
    daily bars. At small size impact should be minor, but "should be" is not a
@@ -481,16 +511,29 @@ because the code that would trip it does not exist yet:
 3. **The thresholds are conventional, not calibrated.** Buffer widths, the
    ~25% cost-to-edge ratio, and the demotion limits are all defaults awaiting
    real data.
-4. **Universe selection beyond the screen.** The screen leaves far more
+4. **Identity intervals begin at first observation, not first trade.** A symbol
+   trading from the window's start whose first dated evidence appears years
+   later carries no identity for the years between. Independent of the
+   CUSIP↔CIK gap and not closed by fixing it. Unmeasured.
+5. **Some priced symbols carry no identity evidence of any kind** — absent from
+   every corporate action and from the ticker map, so unlike the rest there is
+   nothing to join *from*. Currently unclassifiable as well as unjoinable.
+6. **Universe selection beyond the screen.** The screen leaves far more
    eligible names than the target universe size, so something must rank and
-   select — and that rule is where overfitting will live. **This is the one
-   that blocks M3.**
-5. **Historical market caps are not always reconstructible.** In sampling, a
+   select — and that rule is where overfitting will live. **The long-standing
+   blocker for M3, though 4, 5 and 7 now stand in front of it: a ranking rule
+   over a universe missing its delisted names would rank the wrong set.**
+7. **Historical market caps are not always reconstructible.** In sampling, a
    sixth of names had no usable share-count history — mostly delisted names,
    which is exactly the population survivorship bias is about. As-of universe
    construction needs a fallback source or a documented rule for names that
    cannot be rebuilt.
-6. **The resolved trading mode is recorded nowhere, and must be before anything
+8. **What counts as common stock is undecided.** The 13(f) class label is kept
+   verbatim, and there are over twelve thousand distinct values because labels
+   embed rates and expiry dates. Exact matching against a whitelist is out; the
+   screen needs a prefix or pattern rule, and that rule decides which securities
+   are eligible at all.
+9. **The resolved trading mode is recorded nowhere, and must be before anything
    executes.** Settings are resolved once into a frozen object so that "what was
    the trading mode when that order went out?" has exactly one answer for the
    life of a process — but nothing writes that answer down, so afterwards there
@@ -500,7 +543,7 @@ because the code that would trip it does not exist yet:
    true at M4, which is the first code that branches on mode and the first that
    POSTs. The mode must be persisted with every order before that, not after.
 
-A seventh question — whether numeric feeds could skip raw-payload storage — was
+A tenth question — whether numeric feeds could skip raw-payload storage — was
 **closed by measuring it.** Gzipped bar payloads cost 25.9 B/bar against 146.5 B
 for the typed row derived from them, so keeping raw costs about half a gigabyte
 across the whole history: the saving the exception was trading for does not
