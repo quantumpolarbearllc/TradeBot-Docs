@@ -230,6 +230,26 @@ join rather than through a timestamp.
 The runner *reports* what it cannot resolve rather than dropping it, which is
 the only reason the gap was a number instead of a silence.
 
+**A third evidence source closed most of it.** A 13D/G filing states CUSIP and
+subject CIK together, with a date, and survives delisting — the only source here
+that reaches backwards. Enumerated from EDGAR's quarterly full index (which lists
+filers that no longer exist) rather than from submissions (which are reachable
+only for companies with a ticker today), and with the subject read from the SEC
+header rather than from the index, which names both parties and marks neither.
+32,729 filings yielded an edge from **98.6%**, and the unreachable priced
+population fell from 14,060 to **11,317 (53.0%)** — but among priced symbols
+whose class is identified, common stock went from **46.2% unreachable to 13.3%**.
+That is the survivorship number, and the raw count is dominated by warrants,
+units and funds the screen never wanted.
+
+Two limits are recorded rather than papered over. The edge is `(CUSIP, CIK)` and
+carries no symbol, so it fills only an interval that already holds a CUSIP: the
+3,401 priced symbols with no identity evidence at all were reached by exactly
+none of it, and the count did not move by a single row. And a CUSIP naming two
+CIKs is resolved to neither and reported — 456 of 13,778, mostly genuine
+successor entities — but a real CUSIP bound to the *wrong* CIK yields one CIK and
+so trips no filter at all. That case is unaudited and labelled **ASSUMED** clean.
+
 ### 5.3 Features, and why v1 has no model
 
 Features are tiered by how much they can be trusted in a historical backtest.
@@ -493,12 +513,12 @@ kinds and implemented two.
 ## 10. Open questions
 
 Five earlier questions are resolved and folded into the sections above, and
-buffer widths and demotion thresholds have starting values. **Nine remain, and
+buffer widths and demotion thresholds have starting values. **Ten remain, and
 the list grew rather than shrank as M2 was built** — most of these were found by
 running the code against real data, which is the point of building it.
 
 They fall into three groups. **1–3 need real fills** and cannot be settled
-before paper trading. **4–8 gate M3**, and are one question in different
+before paper trading. **4–8 and 10 gate M3**, and are one question in different
 clothes: which securities exist, which are eligible, and which can be joined to
 a filing. **9 gates M4** and nothing else.
 
@@ -517,7 +537,10 @@ a filing. **9 gates M4** and nothing else.
    CUSIP↔CIK gap and not closed by fixing it. Unmeasured.
 5. **Some priced symbols carry no identity evidence of any kind** — absent from
    every corporate action and from the ticker map, so unlike the rest there is
-   nothing to join *from*. Currently unclassifiable as well as unjoinable.
+   nothing to join *from*. Currently unclassifiable as well as unjoinable. The
+   13D/G edge reached **exactly none** of them and structurally cannot: it
+   carries no symbol, so it fills only a link that already half exists. They are
+   now 30% of the residual gap and need a source that dates symbol↔anything.
 6. **Universe selection beyond the screen.** The screen leaves far more
    eligible names than the target universe size, so something must rank and
    select — and that rule is where overfitting will live. **The long-standing
@@ -542,8 +565,17 @@ a filing. **9 gates M4** and nothing else.
    makes is a `GET`, so no order can be placed in any mode. All three stop being
    true at M4, which is the first code that branches on mode and the first that
    POSTs. The mode must be persisted with every order before that, not after.
+10. **The 13D/G subject CIK is unaudited, and its one wrong answer is
+   invisible.** A malformed CUSIP is caught by its check digit, and a CUSIP
+   naming two CIKs is withheld and reported — but a *real* CUSIP bound to the
+   *wrong* CIK yields one CIK per CUSIP and trips neither guard. Corroborating
+   against issuer names is only possible where the filer still appears in the
+   current ticker file, which excludes the delisted names the edge was built
+   for. Labelled **ASSUMED** clean. If it is wrong, some fraction of the joins
+   attach one company's filings to another company's prices, and nothing
+   downstream can distinguish a filled CIK from an observed one.
 
-A tenth question — whether numeric feeds could skip raw-payload storage — was
+A further question — whether numeric feeds could skip raw-payload storage — was
 **closed by measuring it.** Gzipped bar payloads cost 25.9 B/bar against 146.5 B
 for the typed row derived from them, so keeping raw costs about half a gigabyte
 across the whole history: the saving the exception was trading for does not

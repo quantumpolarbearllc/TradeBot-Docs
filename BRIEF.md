@@ -73,10 +73,29 @@ so a symbol resolved if and only if it still traded today. That is survivorship
 bias arriving through the identity join rather than through a timestamp, against
 a band whose membership turns over 2.10×.
 
-**The fix is built and running.** EDGAR's quarterly full index enumerates filers
-that no longer exist, and a 13D/G filing states CUSIP and subject CIK together
-with a date, surviving delisting. Measured on 60 real filings, 57 yield an edge.
-The remaining backfill is what decides how much of the 65.9% closes.
+**The fix worked.** EDGAR's quarterly full index enumerates filers that no longer
+exist, and a 13D/G filing states CUSIP and subject CIK together with a date,
+surviving delisting. The backfill of 32,729 filings yielded an edge from **98.6%**
+of them — above the 95% a 60-filing sample predicted, which is the rare case here
+of a sample proving pessimistic.
+
+| | before | after |
+|---|---|---|
+| priced symbols unable to reach a filing | 14,060 (65.9%) | **11,317 (53.0%)** |
+| identified common stock unreachable | 2,835 (46.2%) | **829 (13.3%)** |
+| symbols carrying a CIK | 10,387 | **13,638** |
+
+The common-stock row is the one that matters, because the raw count includes
+warrants, units and funds the screen never wanted. And the 10,387 was *exactly*
+the size of the current-state ticker file, so every symbol gained beyond it is
+one that no longer trades: the feed genuinely reached backwards, which was the
+whole argument for enumerating from the index rather than from submissions.
+
+**It narrows the problem rather than closing it.** 3,401 priced symbols carry no
+identity evidence of any kind, and this feed reached none of them and
+structurally cannot — its edge carries no symbol, so it only fills in a link that
+already half exists. Universe selection, not the identity join, is now the thing
+that blocks the first backtest.
 
 **No money is at risk**, and that is now a structural claim rather than an
 assurance. There is no strategy and no broker integration; beyond that, nothing
