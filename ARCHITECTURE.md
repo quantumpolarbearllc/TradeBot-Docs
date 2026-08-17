@@ -518,9 +518,11 @@ the list grew rather than shrank as M2 was built** — most of these were found 
 running the code against real data, which is the point of building it.
 
 They fall into three groups. **1–3 need real fills** and cannot be settled
-before paper trading. **4–8 and 10 gate M3**, and are one question in different
-clothes: which securities exist, which are eligible, and which can be joined to
-a filing. **9 gates M4** and nothing else.
+before paper trading. **4–6, 8 and 10 gate M3**, and are one question in
+different clothes: which securities exist, which are eligible, and which can be
+joined to a filing. **9 gates M4** and nothing else. **7 gated M3 until it was
+measured**; its premise did not survive, and it is now a documented exclusion
+rule with a narrower remainder.
 
 1. **Market impact is unmeasured.** Only spread was estimated, and only from
    daily bars. At small size impact should be minor, but "should be" is not a
@@ -546,11 +548,19 @@ a filing. **9 gates M4** and nothing else.
    select — and that rule is where overfitting will live. **The long-standing
    blocker for M3, though 4, 5 and 7 now stand in front of it: a ranking rule
    over a universe missing its delisted names would rank the wrong set.**
-7. **Historical market caps are not always reconstructible.** In sampling, a
-   sixth of names had no usable share-count history — mostly delisted names,
-   which is exactly the population survivorship bias is about. As-of universe
-   construction needs a fallback source or a documented rule for names that
-   cannot be rebuilt.
+7. **Historical market caps are not always reconstructible — but the gap is not
+   survivorship-correlated, and no longer gates the first backtest.** The
+   original framing held that the failures were "mostly delisted names," which
+   would have rebuilt survivorship bias inside the cap screen. Measured over 300
+   symbol-interval windows against SEC XBRL: surviving names reach 90%
+   point-in-time coverage 58% of the time, against 45–62% for names whose
+   interval ended, with no trend against age. So the rule is **no reconstructible
+   cap, no entry** — a roughly unbiased haircut on universe size rather than a
+   survivor filter. Three narrower pieces remain open: 2016–2019 is untested
+   because those names still lack a CIK (question 5); about 28% of windows have
+   partial coverage that is probably question 4's interval granularity rather
+   than missing data; and end-of-life decay was looked for and not found, in a
+   sample of three.
 8. **What counts as common stock is undecided.** The 13(f) class label is kept
    verbatim, and there are over twelve thousand distinct values because labels
    embed rates and expiry dates. Exact matching against a whitelist is out; the
