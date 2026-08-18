@@ -546,8 +546,14 @@ rule with a narrower remainder.
 6. **Universe selection beyond the screen.** The screen leaves far more
    eligible names than the target universe size, so something must rank and
    select — and that rule is where overfitting will live. **The long-standing
-   blocker for M3, though 4, 5 and 7 now stand in front of it: a ranking rule
-   over a universe missing its delisted names would rank the wrong set.**
+   blocker for M3, and now measured: 185 qualifying events a trading day
+   against 0.67–1.0 open slots — roughly 220 candidates per position.** The
+   rule admits 0.45% of what qualifies, every day, which makes it a larger
+   determinant of returns than the signals feeding it. It holds under every
+   slice: the scarcest signal alone, activist stakes, still runs 37 to 1. A
+   parameter-free control is specified — take the day's qualifying events in
+   descending liquidity until the turnover budget is spent — so every richer
+   rule has something it must beat on logged trials rather than on judgement.
 7. **Historical market caps are not always reconstructible — but the gap is not
    survivorship-correlated, and no longer gates the first backtest.** The
    original framing held that the failures were "mostly delisted names," which
