@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-08-17 · **Phase:** M1 complete, M2 built end to end — one backfill running, no signals yet
+**Last updated:** 2026-08-17 · **Phase:** M1 and M2 complete, all backfills run — no signals yet
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -25,12 +25,12 @@ is backtest → paper → small live → scale.
 
 | | Status |
 |---|---|
-| Design | **Complete.** All six original open questions resolved |
+| Design | **Complete** through the 49th decision. Ten questions still open; one blocks the backtest |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
 | Droplet | Hardened, 100 GB volume, stack running, **daily ingest on a timer** |
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
-| **M2 — normalise** | **Built end to end.** Filings, bars, corporate actions, 13(f) share classes and security identity, plus the EDGAR full index and 13D/G ingest that identity needs. One backfill still running |
+| **M2 — normalise** | **Complete.** Filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge, and the quarterly full index. Every backfill has run |
 | Features, strategy, execution | Not started |
 | Old repo | Archived. Not a reference for anything |
 
@@ -39,8 +39,27 @@ be replayed at a past instant, mode resolution that fails safe to paper,
 settings resolved once into a frozen object, and a migration runner that
 refuses to re-apply or reorder schema changes.
 
-**Both feeds are collected and current.** Filings metadata for all 7,997
-distinct US filers, and the price substrate — 47,568 symbols over the full
+**Two survivorship holes were found and closed, both the same mistake.** In each
+case a *current-state* source was standing in for history, and in each case the
+symptom was invisible because the output stayed plausible.
+
+The first was **identity**. Symbol-to-CIK came only from a file listing
+companies that trade today, so a symbol could be joined to its filings if and
+only if it had not died — 65.9% of priced symbols unreachable, and specifically
+the delisted ones. Reading the CUSIP-to-CIK edge out of 13D/G filings, which
+state it with a date and survive delisting, cut that to 53.0%, and cut
+*identified common stock* from 46.2% unreachable to **13.3%**.
+
+The second was the **filing population itself**, and it was worse because
+nothing pointed at it. The filings table was built from an API reachable only
+for companies with a ticker today — 7,997 of them. The quarterly index lists
+every filer that ever existed, and parsing what was already stored took it to
+**548,914 filers over 8,888,946 filings**. Neither hole failed a test; both were
+found by asking what a table could not contain.
+
+**Both feeds are collected and current.** Filings metadata for every filer in
+the window — 548,914 of them once the quarterly index was parsed, against the
+7,997 the per-company API could reach — and the price substrate — 47,568 symbols over the full
 window in both adjustments, plus the complete corporate actions history. A
 scheduled job brings everything forward nightly, catches up dates it missed, and
 reports when a date was never requested.
@@ -96,6 +115,39 @@ identity evidence of any kind, and this feed reached none of them and
 structurally cannot — its edge carries no symbol, so it only fills in a link that
 already half exists. Universe selection, not the identity join, is now the thing
 that blocks the first backtest.
+
+**Two questions that were expected to block the backtest were tested, and one of
+them dissolved.** Market caps are shares times price, and share counts for dead
+companies were believed to be unrecoverable — which would have rebuilt
+survivorship bias inside the cap screen, one stage after it had just been
+removed from the identity join. Measured over 300 symbol-interval windows
+against SEC filings data: names still trading reach usable coverage 58% of the
+time, names whose interval ended 45–62%, **with no trend against age**. The gap
+is real and roughly uniform. That is precisely what makes it safe to exclude
+those names — the cost is universe size rather than correctness — so the
+question stopped being a blocker.
+
+**The other one got a number, and it is a large one.** The screen leaves far
+more eligible names than the strategy can hold, so something must rank and
+select, and that rule is where overfitting lives. Measured: **185 qualifying
+events a trading day against 0.67–1.0 open positions — roughly 220 candidates
+per slot.** The rule admits 0.45% of what qualifies, every day, which makes it
+a bigger determinant of returns than the signals feeding it. It holds under
+every slice; the scarcest signal alone, activist stakes, still runs 37 to 1.
+
+An earlier idea — that watching everything and holding whatever carries a live
+signal would reduce this to an occasional tiebreak — **does not survive the
+measurement**, and is recorded as retracted. That tiebreak fires daily and
+rejects 99.5% of candidates; it *is* the ranking rule.
+
+There is also nothing in v1 to rank *by*. Every signal is an event rather than a
+score — an item code is present or absent, a form type is or is not activist, an
+insider filing is a classification — so any ranking must be invented from
+something other than the signal, and scoring with a model is forbidden. The
+answer is a pre-registered, parameter-free control: take the day's qualifying
+events in descending liquidity until the turnover budget is spent. It is not
+neutral, tilting toward the liquid end of the band, and that is stated rather
+than hidden. Every richer rule must beat it on logged trials.
 
 **No money is at risk**, and that is now a structural claim rather than an
 assurance. There is no strategy and no broker integration; beyond that, nothing

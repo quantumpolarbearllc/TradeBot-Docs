@@ -169,7 +169,7 @@ no append-only protection and are rebuilt rather than patched, which is the
 division invariant 14 actually draws — raw ingest is immutable, everything
 downstream of it is not.
 
-Four are built. **Filings** carry two timestamps, because the two EDGAR sources
+Seven are built. **Filings** carry two timestamps, because the two EDGAR sources
 arrive apart: a daily index names a filing the morning after it is filed, while
 item codes and acceptance times arrive whenever a submissions fetch covers it. A
 feature reading an 8-K item code gates on the later one, since gating on the
@@ -193,6 +193,26 @@ returning **zero rows** for another without complaint. Checked against the one
 quarter published both ways: 25,333 of 25,333 records identical, nothing dropped
 and nothing invented. A layout that is not recognised now raises rather than
 returning what it managed to find.
+
+**Filings are also derived from the quarterly full index**, and that turned out
+to matter more than it looked. The submissions API is reachable only for
+companies holding a ticker today — 7,997 of them — so the filing history built
+from it was the survivors, sitting underneath every signal the strategy reads.
+The quarterly index lists every filer that ever existed. Parsing what was
+already stored, rather than fetching anything new, took the population to
+**548,914 filers across 8,888,946 filings**.
+
+The index lists **one row per party, not per filing**: a Form 4 names the issuer
+and each reporting owner, and 99.2% of activist filings appear twice, once under
+the subject and once under the filer. Two things follow. Counting those rows as
+filings doubles any work planned from the number — an error that had already
+cost a five-hour job once. And collapsing them to a single filer loses exactly
+the half a signal needs, because "did this company have an insider transaction"
+is answered by the issuer while the row that survives a merge may be the
+insider's. So filings keep one row per filing and a companion table keeps every
+party. **Roles are deliberately not recorded**, because the index does not state
+them and a role column could only ever be a guess; the subject of an activist
+filing is read from that filing's own header instead.
 
 The URLs are discovered rather than constructed, for the same class of reason:
 two directories are in use across the window and neither is derivable from the
