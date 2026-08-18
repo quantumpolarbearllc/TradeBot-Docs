@@ -25,7 +25,7 @@ is backtest → paper → small live → scale.
 
 | | Status |
 |---|---|
-| Design | **Complete** through the 49th decision. Ten questions still open, of which **five gate the backtest** — see §5 |
+| Design | **Complete** through the 51st decision. Ten questions still open, of which **five gate the backtest** — see §5 |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
 | Droplet | Hardened, 100 GB volume, stack running, **daily ingest on a timer** |
@@ -300,6 +300,23 @@ joined to a filing.*
 
 Questions 1–3 need real fills and cannot be settled before paper trading.
 Question 9 gates M4 and nothing else.
+
+**The first signal family is being built now.** Activist stakes: every reporting
+person's percent of class, read off the 13D/G cover page. Two things about it
+are worth knowing because they generalise.
+
+The documents were already held — but only *one per company*, which was exactly
+right for the job they were fetched for (establishing which company a filing is
+about) and useless for this one, which needs every stake as a dated event. 3.9%
+of the relevant events were held. The re-fetch is running.
+
+And the extractor was sampled across five eras before a line of it was written.
+That found the modern format has **two** schemas rather than one, where a parser
+knowing only the first returns nothing for the commoner filing type *and still
+looks healthy*, because the rarer type keeps parsing. Yield went 83% to 100% on
+that plus one HTML-entity fix. Both discoveries came from sampling oldest,
+newest and three between rather than checking one document — which is a written
+rule here precisely because it has paid off repeatedly.
 
 **Backtest before paper trading** is deliberate: paper requires building the
 entire execution path, which is a large and dangerous surface to build before
