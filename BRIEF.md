@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-08-17 · **Phase:** M1 and M2 complete, all backfills run — no signals yet
+**Last updated:** 2026-08-17 · **Phase:** M1 complete; M2 normalisation complete, features not started — no signals yet
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -25,12 +25,12 @@ is backtest → paper → small live → scale.
 
 | | Status |
 |---|---|
-| Design | **Complete** through the 49th decision. Ten questions still open; one blocks the backtest |
+| Design | **Complete** through the 49th decision. Ten questions still open, of which **five gate the backtest** — see §5 |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
 | Droplet | Hardened, 100 GB volume, stack running, **daily ingest on a timer** |
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
-| **M2 — normalise** | **Complete.** Filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge, and the quarterly full index. Every backfill has run |
+| **M2 — normalise → features** | **Partial.** Normalisation is complete — filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge and the quarterly full index, with every backfill run. **The feature half has not started**, and M2's gate is features reproducible from raw, so the milestone is not met |
 | Features, strategy, execution | Not started |
 | Old repo | Archived. Not a reference for anything |
 
@@ -59,8 +59,18 @@ found by asking what a table could not contain.
 
 **Both feeds are collected and current.** Filings metadata for every filer in
 the window — 548,914 of them once the quarterly index was parsed, against the
-7,997 the per-company API could reach — and the price substrate — 47,568 symbols over the full
-window in both adjustments, plus the complete corporate actions history. A
+7,997 the per-company API could reach — and the price substrate.
+
+**Two symbol counts appear below and they are not the same thing.** Bars were
+*requested* for **47,568** symbols: the union of the broker's asset list, the
+EDGAR ticker map, and every ticker-shaped symbol named anywhere in the corporate
+actions history. That union is deliberately over-broad, because any filter on
+today's exchange or tradability is a survivorship filter wearing a disguise —
+the failed banks now sit on OTC and would have been excluded. Of those,
+**21,351 actually returned bars** (measured 2026-08-16), and that is the priced
+universe every percentage below is taken against. More than half the union never
+traded in the window at all, which is the expected outcome of asking too widely
+on purpose. A
 scheduled job brings everything forward nightly, catches up dates it missed, and
 reports when a date was never requested.
 
@@ -109,6 +119,35 @@ warrants, units and funds the screen never wanted. And the 10,387 was *exactly*
 the size of the current-state ticker file, so every symbol gained beyond it is
 one that no longer trades: the feed genuinely reached backwards, which was the
 whole argument for enumerating from the index rather than from submissions.
+
+**Those numbers are MEASURED. What they count rests on something ASSUMED, and a
+reader of this file alone would not otherwise learn it.** Every figure in the
+table above is a real count. But each one assumes the edge named the *right*
+company, and that has not been audited.
+
+The extraction has two guards and they cover two of the three failure modes. A
+malformed CUSIP is caught by its check digit — that is how `NONEITEM3`, a
+fragment of prose the parser stitched together, was kept out. A CUSIP naming two
+different companies is withheld rather than resolved to either, and reported:
+456 of 13,778, mostly genuine successor entities like a company renaming itself.
+
+**The third mode trips neither guard.** A *real* CUSIP bound to the *wrong*
+company yields exactly one company per CUSIP, so the contradiction check never
+fires, and the check digit is no defence because the identifier is genuine. It
+would look identical to a correct edge from every angle available downstream —
+nothing can distinguish a filled company id from an observed one.
+
+It is labelled **ASSUMED** clean, and the reason it is not simply tested is
+itself the problem: corroborating an edge against the company's name is only
+possible where that company still appears in the current ticker file, which
+excludes precisely the delisted names the edge was built to reach. An audit
+would bound the error on the population that never needed fixing and say nothing
+about the one that did.
+
+If it is wrong, some fraction of 3,689 joins attach one company's filings to
+another company's price series — silently, with the output staying plausible.
+That is the same shape as the failure this whole rebuild is a response to, which
+is why it is stated here rather than left in the decision log.
 
 **It narrows the problem rather than closing it.** 3,401 priced symbols carry no
 identity evidence of any kind, and this feed reached none of them and
@@ -247,6 +286,21 @@ Desktop session reading this file: a plausible number is not a finding.
 | M4 | Paper execution | Live tracks paper |
 | M5–M6 | Capped live, then live | — |
 
+**Five of the ten open questions gate M3**, and they are one question wearing
+different clothes: *which securities exist, which are eligible, and which can be
+joined to a filing.*
+
+| # | Question | Why it blocks |
+|---|---|---|
+| 4 | Identity intervals begin at first *observation*, not first trade | A name trading from 2016 whose first dated evidence is 2020 has no identity for four tradeable years. Unmeasured |
+| 5 | 3,401 priced symbols carry no identity evidence at all | Nothing to join *from*. The 13D/G edge reached none of them and structurally cannot — it fills a link that already half exists |
+| **6** | **Universe selection beyond the screen** | **The largest. ~220 candidates per open slot, so the rule admits 0.45% of what qualifies** |
+| 8 | What counts as common stock is undecided | Over twelve thousand distinct 13(f) class labels, because they embed rates and expiry dates. This decides which securities are *eligible at all*, and closed-end funds currently carry the same label as operating companies |
+| 10 | The 13D/G subject company is unaudited | Described above. A wrong-but-well-formed edge trips no guard |
+
+Questions 1–3 need real fills and cannot be settled before paper trading.
+Question 9 gates M4 and nothing else.
+
 **Backtest before paper trading** is deliberate: paper requires building the
 entire execution path, which is a large and dangerous surface to build before
 knowing whether the signal works.
@@ -265,7 +319,7 @@ decision defended up front.
 
 ## 6. Decisions made — do not re-litigate
 
-Forty-six decisions are recorded with full reasoning in `DECISIONS.md`
+Forty-nine decisions are recorded with full reasoning in `DECISIONS.md`
 (private repo). Headlines: start fresh · small caps · filings-primary · daily
 rebalance · 40–60 names · **no model in v1** · backtest-first · turnover as a
 budgeted constraint · buffer zones on universe thresholds · terminal events
