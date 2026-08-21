@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-08-17 · **Phase:** M1 complete; M2 normalisation complete, features not started — no signals yet
+**Last updated:** 2026-08-21 · **Phase:** M1 complete; M2 normalisation complete; the M3 backtest harness is built and waiting on one backfill
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -25,7 +25,7 @@ is backtest → paper → small live → scale.
 
 | | Status |
 |---|---|
-| Design | **Complete** through the 51st decision. Ten questions still open, of which **five gate the backtest** — see §5 |
+| Design | **Complete** through the 60th decision. Ten questions still open, of which **five gate the backtest** — see §5 |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
 | Droplet | Hardened, 100 GB volume, stack running, **daily ingest on a timer** |
@@ -317,6 +317,28 @@ looks healthy*, because the rarer type keeps parsing. Yield went 83% to 100% on
 that plus one HTML-entity fix. Both discoveries came from sampling oldest,
 newest and three between rather than checking one document — which is a written
 rule here precisely because it has paid off repeatedly.
+
+**The first backtest can now be run, and it has a stop attached.** Three
+variants of the same strategy, identical but for which names they pick: one
+selecting at random from the day's signals, one applying the candidate ranking
+rule, and one selecting at random from the whole eligible universe while
+ignoring signals entirely.
+
+That third arm is the one that matters. Comparing ranking rules to each other
+cannot distinguish "the ranking is useless" from "the signals carry nothing" —
+and if selecting at random from signals is no better than selecting at random
+from anything, there is nothing here to rank and no rule can rescue it.
+
+**The stop is binding, and was agreed before any of it ran.** If that is the
+result, the milestone ends rather than becoming "try a different signal set".
+Recorded in advance because that is the only moment the answer is honest.
+
+**Every run is logged whether it succeeds or not**, in an append-only table the
+database itself refuses to let anyone edit. A finished run cannot be rewritten
+and a hypothesis cannot be amended after seeing results. A strategy that beats
+the market on the fortieth variant tried and on the first are different claims,
+and only the count distinguishes them — so the count is not something anyone has
+to remember to keep.
 
 **Backtest before paper trading** is deliberate: paper requires building the
 entire execution path, which is a large and dangerous surface to build before

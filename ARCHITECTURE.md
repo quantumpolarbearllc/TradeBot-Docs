@@ -1,6 +1,6 @@
 # Architecture
 
-**Status:** draft for review · **Last updated:** 2026-08-17
+**Status:** draft for review · **Last updated:** 2026-08-21
 
 A daily-rebalance research and execution system for **US small-cap equities**,
 built filings-first. This document is the wireframe: what the pieces are, why
