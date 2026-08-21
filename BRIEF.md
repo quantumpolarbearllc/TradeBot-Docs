@@ -31,7 +31,8 @@ is backtest → paper → small live → scale.
 | Droplet | Hardened, 100 GB volume, stack running, **daily ingest on a timer** |
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
 | **M2 — normalise → features** | **Partial.** Normalisation is complete — filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge and the quarterly full index, with every backfill run. **The feature half has not started**, and M2's gate is features reproducible from raw, so the milestone is not met |
-| Features, strategy, execution | Not started |
+| Features and execution | Not started |
+| Backtest harness | **Built**, waiting on one backfill. Three arms, every run logged |
 | Old repo | Archived. Not a reference for anything |
 
 The foundations are the parts every later component sits on: a clock that can
@@ -67,8 +68,10 @@ EDGAR ticker map, and every ticker-shaped symbol named anywhere in the corporate
 actions history. That union is deliberately over-broad, because any filter on
 today's exchange or tradability is a survivorship filter wearing a disguise —
 the failed banks now sit on OTC and would have been excluded. Of those,
-**21,351 actually returned bars** (measured 2026-08-16), and that is the priced
-universe every percentage below is taken against. More than half the union never
+**21,513 actually returned bars**, and that is the priced universe every
+percentage below is taken against. It read 21,351 until 2026-08-20, when a
+normalisation fix recovered 162 symbols that had no bars at all — so figures
+measured before then use the smaller denominator. More than half the union never
 traded in the window at all, which is the expected outcome of asking too widely
 on purpose. A
 scheduled job brings everything forward nightly, catches up dates it missed, and
@@ -308,7 +311,8 @@ are worth knowing because they generalise.
 The documents were already held — but only *one per company*, which was exactly
 right for the job they were fetched for (establishing which company a filing is
 about) and useless for this one, which needs every stake as a dated event. 3.9%
-of the relevant events were held. The re-fetch is running.
+of the relevant events were held. The re-fetch **completed** — 280,479 documents,
+back to the start of the window.
 
 And the extractor was sampled across five eras before a line of it was written.
 That found the modern format has **two** schemas rather than one, where a parser
