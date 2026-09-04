@@ -1,6 +1,6 @@
 # Architecture
 
-**Status:** draft for review · **Last updated:** 2026-08-21
+**Status:** M3 has run and answered · **Last updated:** 2026-09-04
 
 A daily-rebalance research and execution system for **US small-cap equities**,
 built filings-first. This document is the wireframe: what the pieces are, why
@@ -11,6 +11,53 @@ supporting evidence lives in `FEEDS.md` (field notes) and `RESEARCH.md`
 (literature) in the private code repo; conclusions are restated here so this
 document stands alone. Where something is assumed rather than measured, it
 says so.
+
+---
+
+## 0. Result — M3 ran, and the answer was no
+
+**Read this before the rest of the document.** Everything below describes the
+system as designed. This section says what happened when the design was tested,
+because the sections below it are otherwise read as a live plan.
+
+**A filings-event signal set does not beat random selection from the same
+eligible universe.** Measured across four arms — random-from-events, that set
+ranked by liquidity, random-from-universe, and the universe ranked by liquidity
+— over 2016-2026, both under a flat and a liquidity-tiered cost model, across
+200 seeds. Random-from-events lost to random-from-universe under every
+combination. A pre-registered stop, agreed before any arm ran, fired.
+
+**And nothing beat a passive index fund.** The best arm — a liquidity rank that
+ignores filings entirely and needs none of this system — returned +6.38/+8.44%
+annualised against **IWM's +11.51%** over the same 2,669 trading days.
+
+**The measured transaction cost is 4.91-6.12%/yr**, from turnover of ~9.8x a
+year on a 50-name book at a 60-day hold. That is the dominant term, and it is
+larger than any edge the signal set produced.
+
+**Two corrections were recorded afterwards, and both matter to how this reads:**
+
+- **The gross comparison was not like-for-like.** The backtest books every
+  delisting at −100% under a conservative convention; an index fund does not.
+  Corrected, the eligible universe's gross performance is *approximately the
+  index* — which validates the universe construction and the return computation
+  — and the whole burden falls on the signal to cover its own trading cost.
+- **One signal family was implemented on the wrong side.** The filing-language
+  family selected the high end of a change measure, while the literature it
+  comes from is long the *low* end and short the high. A long-only book was
+  therefore long the leg the paper shorts, which explains an anti-predictive
+  result rather than a merely uninformative one. **It is not currently known
+  whether this project tested that literature or its mirror image.**
+
+**So the current state is:** M3's stop fired and stands; §3's ranker and M4's
+execution path were never built; and a bounded, pre-registered pre-work sequence
+is under way to settle the sign, measure the long-leg alpha it produces, and
+compare it against a cost frontier that is now computed rather than assumed.
+**The bar a signal must clear is its own cost drag — about 5-6%/yr at a 60-day
+hold, falling to ~1.4%/yr at an annual one.**
+
+**What is explicitly not happening:** a family-by-family search for a signal that
+survives. The stop forbids it, and best-of-N is a selection dressed as a finding.
 
 ---
 
@@ -57,6 +104,12 @@ earned.
 
 **M1 runs unattended and needs neither a model nor a human.** M3 is where the
 project either justifies continuing or does not.
+
+**M1 and M2 are complete. M3 has run and answered no** (§0). **M4 through M6 were
+never started** — there is no broker integration, no idempotency, no
+reconciliation and no approval gate anywhere in the codebase, and every HTTP call
+in the package is a `GET`. That is the ordering working as intended: the
+expensive and dangerous parts were not built, because they were not earned.
 
 ## 4. Pipeline
 
@@ -544,6 +597,17 @@ joined to a filing. **9 gates M4** and nothing else. **7 gated M3 until it was
 measured**; its premise did not survive, and it is now a documented exclusion
 rule with a narrower remainder.
 
+> **Dispositions after M3 (§0).** Question 6 — universe selection, recorded from
+> the start as the one blocking M3 — is **answered**: selection from the signal
+> set is worse than no selection, and ranking the universe by liquidity beats
+> both. Question 3 is **partly answered without fills**: the arms rank
+> identically under both cost models, so the result is not fill-dependent.
+> Questions 1 and 2 need fills that will not now be produced. **Questions 4, 5, 8
+> and 10 are moot rather than resolved** — the thing they blocked is not being
+> built, the defects are unchanged, and none of them fails loudly. Question 9
+> carries a standing condition that outlives M3: the resolved trading mode must
+> be persisted with every order *before* the first `POST`, never after.
+
 1. **Market impact is unmeasured.** Only spread was estimated, and only from
    daily bars. At small size impact should be minor, but "should be" is not a
    measurement.
@@ -563,17 +627,18 @@ rule with a narrower remainder.
    13D/G edge reached **exactly none** of them and structurally cannot: it
    carries no symbol, so it fills only a link that already half exists. They are
    now 30% of the residual gap and need a source that dates symbol↔anything.
-6. **Universe selection beyond the screen.** The screen leaves far more
-   eligible names than the target universe size, so something must rank and
-   select — and that rule is where overfitting will live. **The long-standing
-   blocker for M3, and now measured: 185 qualifying events a trading day
-   against 0.67–1.0 open slots — roughly 220 candidates per position.** The
-   rule admits 0.45% of what qualifies, every day, which makes it a larger
-   determinant of returns than the signals feeding it. It holds under every
-   slice: the scarcest signal alone, activist stakes, still runs 37 to 1. A
-   parameter-free control is specified — take the day's qualifying events in
-   descending liquidity until the turnover budget is spent — so every richer
-   rule has something it must beat on logged trials rather than on judgement.
+6. **Universe selection beyond the screen — ANSWERED, and it is §0's result.**
+   The screen leaves far more eligible names than the target universe size, so
+   something must rank and select, and that rule is where overfitting will live.
+   This was the long-standing blocker for M3, measured at roughly 220 candidates
+   per position — a larger determinant of returns than the signals feeding it.
+   **The answer is that selecting on the signal set is worse than not selecting
+   at all**: random draws from the events lost to random draws from the whole
+   eligible universe, under both cost models and across 200 seeds. Ranking the
+   universe by liquidity beat both, and ranking the *events* by liquidity beat
+   neither — which also showed that the originally specified parameter-free
+   control was itself confounded, because it varied the pool **and** the rule at
+   once. **A control that changes two things is not a control.**
 7. **Historical market caps are not always reconstructible — but the gap is not
    survivorship-correlated, and no longer gates the first backtest.** The
    original framing held that the failures were "mostly delisted names," which

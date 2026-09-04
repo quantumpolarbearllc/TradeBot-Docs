@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-08-21 · **Phase:** M1 complete; M2 normalisation complete; the M3 backtest harness is built and waiting on one backfill
+**Last updated:** 2026-09-04 · **Phase:** M1 and M2 complete; **M3 has run and the answer was no**; a bounded pre-work sequence is settling one implementation error before anything else is decided
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -8,6 +8,39 @@ fully current in one read, with no prior context and nothing pasted in.
 **If you are Claude Desktop:** you are the reader, not the writer. Claude Code
 owns the repository. Anything you produce comes back as a file the owner drops
 in — see §8.
+
+---
+
+## 0. If you read nothing else
+
+**M3 ran. The answer was no, and the stop fired.** A filings-event signal set did
+not beat random selection from the same eligible universe — measured over
+2016-2026, four arms, two cost models, 200 seeds. **And no arm beat a passive
+index fund:** the best of them returned +6.38/+8.44% annualised against **IWM's
++11.51%** over the same 2,669 trading days. Measured transaction cost is
+**4.91-6.12%/yr** and is the dominant term.
+
+**§3's ranker and M4's execution path were never built.** There is no broker
+integration, no idempotency, no reconciliation, no approval gate. Every HTTP call
+in the package is a `GET`.
+
+**Two corrections were then recorded, and they change what to propose:**
+
+1. **The gross comparison was not like-for-like.** The backtest books delistings
+   at −100%; an index fund does not. Corrected, the universe's gross performance
+   is *approximately the index*, so the burden falls entirely on the signal to
+   cover its own trading cost. **The bar is ~5-6%/yr at a 60-day hold, falling
+   to ~1.4%/yr at an annual one.**
+2. **One signal family was implemented on the wrong side** — long the leg its
+   source literature shorts. **It is not currently known whether the literature
+   was tested or its mirror image.** Settling that is a correctness fix, already
+   pre-registered with a stop, and it is the next thing to run.
+
+**If you are asked what to do next: the answer is not a new signal family and not
+a new threshold.** A pre-registered stop forbids exactly that,
+and best-of-N is a selection dressed as a finding. The sequenced pre-work is:
+settle the sign, measure the long-leg alpha it produces, compare it against the
+cost frontier, and only then decide whether a question exists.
 
 ---
 
@@ -25,14 +58,15 @@ is backtest → paper → small live → scale.
 
 | | Status |
 |---|---|
-| Design | **Complete** through the 60th decision. Ten questions still open, of which **five gate the backtest** — see §5 |
+| Design | **Complete** through the 80th decision. The ten open questions now carry dispositions — one is answered, one is partly answered, the rest are moot rather than resolved — see §5 |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
 | Droplet | Hardened, 100 GB volume, stack running, **daily ingest on a timer** |
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
-| **M2 — normalise → features** | **Partial.** Normalisation is complete — filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge and the quarterly full index, with every backfill run. **The feature half has not started**, and M2's gate is features reproducible from raw, so the milestone is not met |
-| Features and execution | Not started |
-| Backtest harness | **Built**, waiting on one backfill. Three arms, every run logged |
+| **M2 — normalise → features** | **Complete.** Normalisation and the Tier A features both — filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge, the quarterly full index, insider transactions, earnings CAR and filing-language distance |
+| **M3 — backtest** | **Run, and answered no.** See §0. Four arms, two cost models, 200 seeds, 5,628 logged trials across 16 registrations |
+| Execution (M4–M6) | **Not started, and not being started.** No broker path exists |
+| Backtest harness | **Built and used.** Four arms, every run logged, both trial tables append-only by trigger |
 | Old repo | Archived. Not a reference for anything |
 
 The foundations are the parts every later component sits on: a clock that can
@@ -289,20 +323,31 @@ Desktop session reading this file: a plausible number is not a finding.
 | M4 | Paper execution | Live tracks paper |
 | M5–M6 | Capped live, then live | — |
 
-**Five of the ten open questions gate M3**, and they are one question wearing
+**M1 and M2 are complete; M3 has run and answered no (§0); M4–M6 were never
+started.**
+
+**Five of the ten open questions gated M3**, and they are one question wearing
 different clothes: *which securities exist, which are eligible, and which can be
-joined to a filing.*
+joined to a filing.* **They now carry dispositions, and the distinction matters:**
+question 6 is **answered**; questions 4, 5, 8 and 10 are **moot rather than
+resolved** — the thing they blocked is not being built, the defects are
+unchanged, and none of them fails loudly. Anything re-pointing this instrument at
+a new question inherits all four silently.
 
 | # | Question | Why it blocks |
 |---|---|---|
 | 4 | Identity intervals begin at first *observation*, not first trade | A name trading from 2016 whose first dated evidence is 2020 has no identity for four tradeable years. Unmeasured |
 | 5 | 3,401 priced symbols carry no identity evidence at all | Nothing to join *from*. The 13D/G edge reached none of them and structurally cannot — it fills a link that already half exists |
-| **6** | **Universe selection beyond the screen** | **The largest. ~220 candidates per open slot, so the rule admits 0.45% of what qualifies** |
+| **6** | **Universe selection beyond the screen — ANSWERED** | **Was the largest, at ~220 candidates per open slot. The answer is that selecting on the signal set is worse than not selecting at all, and ranking the universe by liquidity beats both (§0)** |
 | 8 | What counts as common stock is undecided | Over twelve thousand distinct 13(f) class labels, because they embed rates and expiry dates. This decides which securities are *eligible at all*, and closed-end funds currently carry the same label as operating companies |
 | 10 | The 13D/G subject company is unaudited | Described above. A wrong-but-well-formed edge trips no guard |
 
-Questions 1–3 need real fills and cannot be settled before paper trading.
-Question 9 gates M4 and nothing else.
+Questions 1–3 need real fills and cannot be settled before paper trading —
+**except that question 3's cost half is now partly answered without them**: the
+arms rank identically under both cost models, so the result is not
+fill-dependent. Question 9 gates M4 and nothing else, and carries a standing
+condition that outlives M3: the resolved trading mode must be persisted with
+every order **before** the first `POST`, never after.
 
 **The first signal family is being built now.** Activist stakes: every reporting
 person's percent of class, read off the 13D/G cover page. Two things about it
