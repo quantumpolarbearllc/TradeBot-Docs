@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-09-04 · **Phase:** M1 and M2 complete; **M3 has run and the answer was no**; a bounded pre-work sequence is settling one implementation error before anything else is decided
+**Last updated:** 2026-09-08 · **Phase:** M1 and M2 complete; **M3 has run, the answer is no, and the one apparent positive result was shown to be a pooling artifact**
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -13,34 +13,54 @@ in — see §8.
 
 ## 0. If you read nothing else
 
-**M3 ran. The answer was no, and the stop fired.** A filings-event signal set did
-not beat random selection from the same eligible universe — measured over
-2016-2026, four arms, two cost models, 200 seeds. **And no arm beat a passive
-index fund:** the best of them returned +6.38/+8.44% annualised against **IWM's
-+11.51%** over the same 2,669 trading days. Measured transaction cost is
-**4.91-6.12%/yr** and is the dominant term.
+**M3 ran. The answer is no, and the one apparent result was an artifact.**
 
-**§3's ranker and M4's execution path were never built.** There is no broker
-integration, no idempotency, no reconciliation, no approval gate. Every HTTP call
-in the package is a `GET`.
+A filings-event signal set did not beat random selection from the same eligible
+universe — measured across four arms, two cost models and 200 seeds. **And no arm
+beat a passive index fund:** the best returned +6.38/+8.44% annualised against
+IWM's +11.51% over the same 2,669 days. Measured transaction cost is
+**4.91–6.12%/yr** and is the dominant term.
 
-**Two corrections were then recorded, and they change what to propose:**
+**Four data defects were found and fixed before that conclusion could be
+trusted**, and each had been silently wrong for the life of the project:
 
-1. **The gross comparison was not like-for-like.** The backtest books delistings
-   at −100%; an index fund does not. Corrected, the universe's gross performance
-   is *approximately the index*, so the burden falls entirely on the signal to
-   cover its own trading cost. **The bar is ~5-6%/yr at a 60-day hold, falling
-   to ~1.4%/yr at an annual one.**
-2. **One signal family was implemented on the wrong side** — long the leg its
-   source literature shorts. **It is not currently known whether the literature
-   was tested or its mirror image.** Settling that is a correctness fix, already
-   pre-registered with a stop, and it is the next thing to run.
+1. **No passive benchmark had ever been checked.** Every document said none
+   existed; the series were in the price store all along.
+2. **One signal family was implemented on the side its source literature
+   shorts.**
+3. **The corporate-actions feed had never parsed** — two missing enum values, so
+   the parser refused the whole feed and every delisted position was priced at
+   −100% in every backtest.
+4. **42% of those "delistings" were companies that changed ticker and kept
+   trading**, booked as total losses.
 
-**If you are asked what to do next: the answer is not a new signal family and not
-a new threshold.** A pre-registered stop forbids exactly that,
-and best-of-N is a selection dressed as a finding. The sequenced pre-work is:
-settle the sign, measure the long-leg alpha it produces, compare it against the
-cost frontier, and only then decide whether a question exists.
+**Then the universe itself turned out to be wrong.** The system is specified for
+small caps, and the screen excluded nothing at the top — its most-liquid arm held
+the twelve largest companies in America for 2,610 of 2,669 days.
+
+**Adding the cap band produced the first positive result in the project.** It
+survived a control and replicated across a pre-registered ladder of size buckets.
+It then failed two further tests: it was specific to a single holding period, and
+**it is absent from both halves of its own window while being significant over
+the pooled window** — a pooling artifact, not a signal.
+
+**16,884 trials across 44 registrations**, spanning four cap bands, three
+horizons, two cost models and two period halves. Nothing cleared the bar, which
+was set in advance as the measured cost drag.
+
+**If you are asked what to do next: not a new signal family, not another cap
+band, not another horizon.** The selection space is already large and nothing in
+it replicated. The one measurement left is to force terminal returns to zero on
+the full window, isolating whether the pooling artifact is the terminal
+convention compounding.
+
+**There is no out-of-sample test of any kind.** The period split is not one, and
+a genuine test needs data this project does not have — the price history starts
+2016 and there is no second market.
+
+**§3's ranker and M4's execution path were never built.** No broker integration,
+no idempotency, no reconciliation, no approval gate. That is the sequencing
+working: a negative result arrived for a few weeks of compute and no capital.
 
 ---
 
