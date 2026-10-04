@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-09-08 · **Phase:** M1 and M2 complete; **M3 has run, the answer is no, and the one apparent positive result was shown to be a pooling artifact**
+**Last updated:** 2026-10-04 · **Phase:** M3 has run — **not stable, and never tested out of sample**; the execution path is built and has never traded; a data catch-up is in progress
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -13,61 +13,58 @@ in — see §8.
 
 ## 0. If you read nothing else
 
-**M3 ran. The answer is no, and the one apparent result was an artifact.**
+> **Correction, 2026-10-04.** This file said from 2026-09-08 that M3's one
+> positive result was "a pooling artifact". **That was withdrawn on 2026-09-10**:
+> the test that produced it was measuring its own panel reconstruction, not the
+> signal, and this public copy went four weeks without the correction. The
+> private decision log carried it the whole time; this file did not.
 
-A filings-event signal set did not beat random selection from the same eligible
-universe — measured across four arms, two cost models and 200 seeds. **And no arm
-beat a passive index fund:** the best returned +6.38/+8.44% annualised against
-IWM's +11.51% over the same 2,669 days. Measured transaction cost is
-**4.91–6.12%/yr** and is the dominant term.
+**The answer is not "no". It is "not stable, and never tested out of sample".**
 
-**Four data defects were found and fixed before that conclusion could be
-trusted**, and each had been silently wrong for the life of the project:
+Restricted to the small-cap band the system is specified for, the signal set
+beats random selection from the same eligible universe — across six cost models
+spanning a tenfold range, because the two arms turn over at the same rate and
+cost cancels in the difference. **But the effect is ~0 in 2016-2020 and ~+4pp
+in 2021-2026.** An effect present in one half of its own sample is not
+dependable, and a power calculation says the period split could never have told
+either way: distinguishing this effect from zero on live returns would take
+over twenty years.
 
-1. **No passive benchmark had ever been checked.** Every document said none
-   existed; the series were in the price store all along.
-2. **One signal family was implemented on the side its source literature
-   shorts.**
-3. **The corporate-actions feed had never parsed** — two missing enum values, so
-   the parser refused the whole feed and every delisted position was priced at
-   −100% in every backtest.
-4. **42% of those "delistings" were companies that changed ticker and kept
-   trading**, booked as total losses.
+**Against the index, capital decides.** At measured spreads plus estimated
+impact the strategy clears IWM up to roughly a $1M book on the full window, and
+not at $5M. The book size and the cost constant turned out to be one parameter,
+and only one of them had ever been written down.
 
-**Then the universe itself turned out to be wrong.** The system is specified for
-small caps, and the screen excluded nothing at the top — its most-liquid arm held
-the twelve largest companies in America for 2,610 of 2,669 days.
+**A fill-delay cost was measured** before anything traded: about 0.3-0.45
+percentage points a year per session between decision and fill. A cost, not a
+cliff.
 
-**Adding the cap band produced the first positive result in the project.** It
-survived a control and replicated across a pre-registered ladder of size buckets.
-It then failed two further tests: it was specific to a single holding period, and
-**it is absent from both halves of its own window while being significant over
-the pooled window** — a pooling artifact, not a signal.
+**The execution path now exists and has never placed an order** (§2). It was
+built because research had produced a candidate worth operating, under a
+written ladder: weeks of paper trading for operations only, then small real
+money, because only real fills measure market impact. Returns are a criterion
+at no stage — they cannot be, on that power calculation.
 
-**16,884 trials across 44 registrations**, spanning four cap bands, three
-horizons, two cost models and two period halves. Nothing cleared the bar, which
-was set in advance as the measured cost drag.
+**Before any order, six defects between the data and the order were found and
+fixed** — among them a price feed asked for data in a format that cost a day of
+delay, order records that were written but not committed before sending, a
+refresh that never ran so two signal families would silently have stopped, and
+share counts that froze at their first fetch. Each was found by measuring, and
+each has a test written to fail first.
 
-**If you are asked what to do next: not a new signal family, not another cap
-band, not another horizon.** The selection space is already large and nothing in
-it replicated. The one measurement left is to force terminal returns to zero on
-the full window, isolating whether the pooling artifact is the terminal
-convention compounding.
-
-**There is no out-of-sample test of any kind.** The period split is not one, and
-a genuine test needs data this project does not have — the price history starts
-2016 and there is no second market.
-
-**§3's ranker and M4's execution path were never built.** No broker integration,
-no idempotency, no reconciliation, no approval gate. That is the sequencing
-working: a negative result arrived for a few weeks of compute and no capital.
+**If you are asked what to do next:** not a new signal family, cap band,
+horizon or ranker — the selection space is already large. The open items are
+operational (a data catch-up, then the nightly chain, then paper), plus one
+pre-registered fidelity test. **There is still no out-of-sample test of any
+kind**; a genuine one needs pre-2016 delisted-inclusive price data this project
+does not hold.
 
 ---
 
 ## 1. What is being built, in one paragraph
 
 A daily-rebalance research and execution system for **US small-cap equities**
-(40–60 names). It reads **SEC filings primarily** and news secondarily,
+(120 names, adopted on a test; originally 40–60). It reads **SEC filings primarily** and news secondarily,
 derives point-in-time features, and runs a deterministic strategy to produce a
 target portfolio. Orders pass a turnover budget, a risk gate, and a human
 approval gate before reaching the broker. It is a **drift-capture system** —
@@ -78,16 +75,21 @@ is backtest → paper → small live → scale.
 
 | | Status |
 |---|---|
-| Design | **Complete** through the 80th decision. The ten open questions now carry dispositions — one is answered, one is partly answered, the rest are moot rather than resolved — see §5 |
+| Design | **Complete** through the 129th decision. The ten open questions now carry dispositions — one is answered, one is partly answered, the rest are moot rather than resolved — see §5 |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
-| Droplet | Hardened, 100 GB volume, stack running, **daily ingest on a timer** |
+| Droplet | Hardened, 100 GB volume, stack running. **Nightly timer paused** while a data catch-up runs |
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
 | **M2 — normalise → features** | **Complete.** Normalisation and the Tier A features both — filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge, the quarterly full index, insider transactions, earnings CAR and filing-language distance |
-| **M3 — backtest** | **Run, and answered no.** See §0. Four arms, two cost models, 200 seeds, 5,628 logged trials across 16 registrations |
-| Execution (M4–M6) | **Not started, and not being started.** No broker path exists |
+| **M3 — backtest** | **Run: not stable, and never tested out of sample.** See §0. 38,644 logged trials across 98 registrations |
+| **M4 — paper** | **Built, never traded.** Risk gate, idempotent order log with the mode recorded and committed before each send, broker reconciliation that halts on any mismatch, a nightly chain that stops at its first failure, and a trading timer installed disabled. One dry run matched the backtest's candidates exactly |
+| M5–M6 — live | Not started. A written ladder of small real-money stages, each an explicit human decision |
 | Backtest harness | **Built and used.** Four arms, every run logged, both trial tables append-only by trigger |
 | Old repo | Archived. Not a reference for anything |
+
+**The rest of this section is the build history to mid-2026-08, kept for its
+reasoning.** Its figures were true when written; current state is §0 and the
+table above.
 
 The foundations are the parts every later component sits on: a clock that can
 be replayed at a past instant, mode resolution that fails safe to paper,
@@ -245,11 +247,15 @@ events in descending liquidity until the turnover budget is spent. It is not
 neutral, tilting toward the liquid end of the band, and that is stated rather
 than hidden. Every richer rule must beat it on logged trials.
 
-**No money is at risk**, and that is now a structural claim rather than an
-assurance. There is no strategy and no broker integration; beyond that, nothing
-in the package reads the trading mode, the live broker host does not appear in
-it anywhere, and every HTTP call it makes is a `GET`. An order needs a POST, so
-no code path can place one in any mode.
+**No money is at risk, and the reason changed on 2026-09-13.** Until then it
+was structural: every HTTP call in the package was a `GET`, so no order could be
+placed in any mode. **That is no longer true** — there is exactly one `POST`,
+in the broker client. What replaces absence is enforcement: the mode is paper
+unless the setting is exactly `live`; the broker host is derived from that mode
+and re-checked against the order's own id; each order's intent, including the
+mode, is committed before it is sent; risk limits can only be tightened; exits
+are always allowed; and reconciliation against the broker halts on any
+mismatch. **No order has been sent in any mode.**
 
 ## 3. The eight things that decide everything else
 
@@ -343,8 +349,8 @@ Desktop session reading this file: a plausible number is not a finding.
 | M4 | Paper execution | Live tracks paper |
 | M5–M6 | Capped live, then live | — |
 
-**M1 and M2 are complete; M3 has run and answered no (§0); M4–M6 were never
-started.**
+**M1 and M2 are complete; M3 has run (§0); M4 is built and has never traded;
+M5–M6 are not started.**
 
 **Five of the ten open questions gated M3**, and they are one question wearing
 different clothes: *which securities exist, which are eligible, and which can be
@@ -358,18 +364,20 @@ a new question inherits all four silently.
 |---|---|---|
 | 4 | Identity intervals begin at first *observation*, not first trade | A name trading from 2016 whose first dated evidence is 2020 has no identity for four tradeable years. Unmeasured |
 | 5 | 3,401 priced symbols carry no identity evidence at all | Nothing to join *from*. The 13D/G edge reached none of them and structurally cannot — it fills a link that already half exists |
-| **6** | **Universe selection beyond the screen — ANSWERED** | **Was the largest, at ~220 candidates per open slot. The answer is that selecting on the signal set is worse than not selecting at all, and ranking the universe by liquidity beats both (§0)** |
+| **6** | **Universe selection beyond the screen — ANSWERED** | **Was the largest, at ~220 candidates per open slot. Inside the specified cap band the funnel is ~8:1, not 220:1, and selecting at random from the signal set is the best rule found; both ranking rules tested did worse than chance within the same pool** |
 | 8 | What counts as common stock is undecided | Over twelve thousand distinct 13(f) class labels, because they embed rates and expiry dates. This decides which securities are *eligible at all*, and closed-end funds currently carry the same label as operating companies |
 | 10 | The 13D/G subject company is unaudited | Described above. A wrong-but-well-formed edge trips no guard |
 
 Questions 1–3 need real fills and cannot be settled before paper trading —
 **except that question 3's cost half is now partly answered without them**: the
 arms rank identically under both cost models, so the result is not
-fill-dependent. Question 9 gates M4 and nothing else, and carries a standing
-condition that outlives M3: the resolved trading mode must be persisted with
-every order **before** the first `POST`, never after.
+fill-dependent. Question 9 is **met**: the resolved trading mode is persisted with every order
+and committed before the `POST` — the commit itself was found missing and fixed
+on 2026-10-04, before any order existed.
 
-**The first signal family is being built now.** Activist stakes: every reporting
+*History from here to the end of this section, kept for its reasoning.*
+
+**The first signal family was built next.** Activist stakes: every reporting
 person's percent of class, read off the 13D/G cover page. Two things about it
 are worth knowing because they generalise.
 
@@ -413,12 +421,9 @@ to remember to keep.
 entire execution path, which is a large and dangerous surface to build before
 knowing whether the signal works.
 
-**One prerequisite is already known for M4.** The resolved trading mode is not
-recorded anywhere — settings are resolved once into a frozen object, so a
-process has one answer for its lifetime and leaves none behind it. That is
-harmless while nothing can trade, and M4 is the point at which it stops being
-harmless, so the mode gets persisted with every order before that milestone
-rather than after.
+**M4's first prerequisite was the trading mode**, which was not recorded
+anywhere. It is now persisted with every order, and committed before the order
+is sent.
 
 M1 backfills history rather than only collecting forward, phased so that
 metadata — which unlocks three of the four signals — lands first, and running
@@ -427,9 +432,9 @@ decision defended up front.
 
 ## 6. Decisions made — do not re-litigate
 
-Forty-nine decisions are recorded with full reasoning in `DECISIONS.md`
+129 decisions are recorded with full reasoning in `DECISIONS.md`
 (private repo). Headlines: start fresh · small caps · filings-primary · daily
-rebalance · 40–60 names · **no model in v1** · backtest-first · turnover as a
+rebalance · 120 names (originally 40–60) · **no model in v1** · backtest-first · turnover as a
 budgeted constraint · buffer zones on universe thresholds · terminal events
 default to −100% · both price series retained · pre-registration · one live
 strategy by policy, many by schema · demotion automatic, promotion human ·

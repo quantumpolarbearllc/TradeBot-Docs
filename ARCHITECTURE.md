@@ -1,6 +1,6 @@
 # Architecture
 
-**Status:** M3 has run and answered · **Last updated:** 2026-09-08
+**Status:** M3 run — not stable, never tested out of sample; M4 built, never traded · **Last updated:** 2026-10-04
 
 A daily-rebalance research and execution system for **US small-cap equities**,
 built filings-first. This document is the wireframe: what the pieces are, why
@@ -14,56 +14,22 @@ says so.
 
 ---
 
-## 0. Result — M3 ran, the answer is no, and the one positive result was an artifact
+## 0. Result — not stable, and never tested out of sample
 
-**M3 ran. The answer is no, and the one apparent result was an artifact.**
+> **Correction, 2026-10-04.** From 2026-09-08 this section said M3's one
+> positive result was "a pooling artifact". That was withdrawn on 2026-09-10 —
+> the period test was measuring its own panel reconstruction — and this public
+> copy carried the withdrawn conclusion for four weeks.
 
-A filings-event signal set did not beat random selection from the same eligible
-universe — measured across four arms, two cost models and 200 seeds. **And no arm
-beat a passive index fund:** the best returned +6.38/+8.44% annualised against
-IWM's +11.51% over the same 2,669 days. Measured transaction cost is
-**4.91–6.12%/yr** and is the dominant term.
+**Inside the specified small-cap band, the signal set beats random selection
+from the same universe, at every cost model tested — but only in 2021-2026, not
+2016-2020.** That is not dependable, and a power calculation shows no live stage
+could settle it on returns. Against the index the strategy is capital-bounded:
+it clears IWM up to roughly a $1M book and not at $5M. Nothing is out-of-sample.
 
-**Four data defects were found and fixed before that conclusion could be
-trusted**, and each had been silently wrong for the life of the project:
-
-1. **No passive benchmark had ever been checked.** Every document said none
-   existed; the series were in the price store all along.
-2. **One signal family was implemented on the side its source literature
-   shorts.**
-3. **The corporate-actions feed had never parsed** — two missing enum values, so
-   the parser refused the whole feed and every delisted position was priced at
-   −100% in every backtest.
-4. **42% of those "delistings" were companies that changed ticker and kept
-   trading**, booked as total losses.
-
-**Then the universe itself turned out to be wrong.** The system is specified for
-small caps, and the screen excluded nothing at the top — its most-liquid arm held
-the twelve largest companies in America for 2,610 of 2,669 days.
-
-**Adding the cap band produced the first positive result in the project.** It
-survived a control and replicated across a pre-registered ladder of size buckets.
-It then failed two further tests: it was specific to a single holding period, and
-**it is absent from both halves of its own window while being significant over
-the pooled window** — a pooling artifact, not a signal.
-
-**16,884 trials across 44 registrations**, spanning four cap bands, three
-horizons, two cost models and two period halves. Nothing cleared the bar, which
-was set in advance as the measured cost drag.
-
-**If you are asked what to do next: not a new signal family, not another cap
-band, not another horizon.** The selection space is already large and nothing in
-it replicated. The one measurement left is to force terminal returns to zero on
-the full window, isolating whether the pooling artifact is the terminal
-convention compounding.
-
-**There is no out-of-sample test of any kind.** The period split is not one, and
-a genuine test needs data this project does not have — the price history starts
-2016 and there is no second market.
-
-**§3's ranker and M4's execution path were never built.** No broker integration,
-no idempotency, no reconciliation, no approval gate. That is the sequencing
-working: a negative result arrived for a few weeks of compute and no capital.
+**The execution path was built on that basis and has never placed an order**
+(§3, §5.10). The current state, the measurements and what comes next are in
+`BRIEF.md` §0 and §2; this section is kept short so the two cannot disagree.
 
 ---
 
@@ -72,7 +38,7 @@ working: a negative result arrived for a few weeks of compute and no capital.
 Once per day, before the open, it decides what to hold.
 
 It reads SEC filings (primarily) and news (secondarily) for a universe of
-40–60 small-cap names, derives point-in-time features, and runs a
+120 small-cap names, derives point-in-time features, and runs a
 deterministic strategy over those features to produce a target portfolio.
 Orders pass a turnover budget, a risk gate, and an approval gate before
 reaching the broker.
@@ -87,7 +53,7 @@ constraint rather than a preference.
 | Decision | Value | Why |
 |---|---|---|
 | Cadence | Daily rebalance, pre-open | Prior-day closes are available on the current data plan; intraday is not |
-| Universe | 40–60 US small caps | Below ~40 names signal flow drops under one event/day |
+| Universe | 120 US small caps | Originally 40–60; 120 tested before adoption — the book still fills and seed dispersion halves |
 | Cap band | ~$300M–$2B, with buffer | Below $300M coverage thins and costs escalate |
 | Primary feed | SEC EDGAR | 100% universe coverage vs 69% for news |
 | **Model in v1** | **None** | Every evidence-backed signal is computable without one — see §5.3 |
@@ -111,11 +77,12 @@ earned.
 **M1 runs unattended and needs neither a model nor a human.** M3 is where the
 project either justifies continuing or does not.
 
-**M1 and M2 are complete. M3 has run and answered no** (§0). **M4 through M6 were
-never started** — there is no broker integration, no idempotency, no
-reconciliation and no approval gate anywhere in the codebase, and every HTTP call
-in the package is a `GET`. That is the ordering working as intended: the
-expensive and dangerous parts were not built, because they were not earned.
+**M1 and M2 are complete. M3 has run** (§0). **M4 is built and has never
+traded**: broker integration, idempotent order records, reconciliation, the risk
+gate and a nightly chain all exist, with the trading timer installed disabled.
+Until 2026-09-13 every HTTP call in the package was a `GET`; there is now
+exactly one `POST`. **M5 and M6 are not started** — each step up is a written,
+explicit human decision.
 
 ## 4. Pipeline
 
@@ -499,6 +466,14 @@ Idempotency keys on submission — retrying a submit that actually succeeded is
 how you get a double position. **Never cache broker state and serve it as
 truth**; reconcile against the broker and feed fills back as observations.
 
+**Built.** Each order's intent — including the resolved trading mode — is
+committed before it is sent and the broker's answer after, so a crash between
+the two leaves a record reconciliation can resolve. Nothing is retried: an
+outcome that cannot be determined waits for reconciliation, and any mismatch
+halts the session. One decision per session: a decision date already decided is
+refused, so the morning after a market holiday cannot re-send the previous
+session's exits. **No order has been sent in any mode.**
+
 ## 6. Invariants
 
 Not style preferences. If a task seems to require breaking one, **stop and
@@ -603,23 +578,25 @@ joined to a filing. **9 gates M4** and nothing else. **7 gated M3 until it was
 measured**; its premise did not survive, and it is now a documented exclusion
 rule with a narrower remainder.
 
-> **Dispositions after M3 (§0).** Question 6 — universe selection, recorded from
-> the start as the one blocking M3 — is **answered**: selection from the signal
-> set is worse than no selection, and ranking the universe by liquidity beats
-> both. Question 3 is **partly answered without fills**: the arms rank
-> identically under both cost models, so the result is not fill-dependent.
-> Questions 1 and 2 need fills that will not now be produced. **Questions 4, 5, 8
-> and 10 are moot rather than resolved** — the thing they blocked is not being
-> built, the defects are unchanged, and none of them fails loudly. Question 9
-> carries a standing condition that outlives M3: the resolved trading mode must
-> be persisted with every order *before* the first `POST`, never after.
+> **Dispositions, 2026-10-04.** Question 6 — universe selection — is
+> **answered**, inside the specified cap band, where the funnel is ~8:1 rather
+> than 220:1 and random selection from the signal set beat both ranking rules
+> tried. Question 9 is **met** (§5.10). Question 7 was **reopened**: measured
+> across the whole universe rather than 300 windows, names without a
+> reconstructible cap *are* disproportionately delisted, so the cap screen is a
+> survivor filter — though it was shown not to drive the result. Question 1
+> needs **real-money** fills: a paper account fills against the quote and
+> cannot measure impact, which is why the live ladder exists. **Questions 4, 5,
+> 8 and 10 are unchanged** and fail silently; anything building on this
+> inherits them.
 
 1. **Market impact is unmeasured.** Only spread was estimated, and only from
    daily bars. At small size impact should be minor, but "should be" is not a
    measurement.
 2. **Spread estimation is unreliable for illiquid names** — the daily-bar
    estimator inverts, reading thinly-traded names as *cheaper* than liquid
-   ones. Real fills from paper trading are the fix.
+   ones. Real fills are the fix — and for impact (question 1) they must be
+   real-money fills, since a paper account fills against the quote.
 3. **The thresholds are conventional, not calibrated.** Buffer widths, the
    ~25% cost-to-edge ratio, and the demotion limits are all defaults awaiting
    real data.
@@ -645,7 +622,12 @@ rule with a narrower remainder.
    neither — which also showed that the originally specified parameter-free
    control was itself confounded, because it varied the pool **and** the rule at
    once. **A control that changes two things is not a control.**
-7. **Historical market caps are not always reconstructible — but the gap is not
+7. **REOPENED — kept below as originally recorded.** Measured across the whole
+   priced universe rather than 300 windows, names with no reconstructible cap
+   are 53.9% delisted against a 39.1% base rate: the cap screen *is* a survivor
+   filter. A control showed it does not drive the result, but every absolute
+   return is lifted by it. *Original text:*
+   **Historical market caps are not always reconstructible — but the gap is not
    survivorship-correlated, and no longer gates the first backtest.** The
    original framing held that the failures were "mostly delisted names," which
    would have rebuilt survivorship bias inside the cap screen. Measured over 300
@@ -663,7 +645,9 @@ rule with a narrower remainder.
    embed rates and expiry dates. Exact matching against a whitelist is out; the
    screen needs a prefix or pattern rule, and that rule decides which securities
    are eligible at all.
-9. **The resolved trading mode is recorded nowhere, and must be before anything
+9. **MET 2026-10-04 — kept below as originally recorded.** The mode is now
+   persisted with every order and committed before the `POST`. *Original text:*
+   **The resolved trading mode is recorded nowhere, and must be before anything
    executes.** Settings are resolved once into a frozen object so that "what was
    the trading mode when that order went out?" has exactly one answer for the
    life of a process — but nothing writes that answer down, so afterwards there
