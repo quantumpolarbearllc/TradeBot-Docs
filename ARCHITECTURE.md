@@ -34,7 +34,8 @@ out-of-sample.
 **The execution path was built on that basis and has never placed an order**
 (§3, §5.10). *Added 2026-11-21:* it sizes every order as a fractional share
 quantity, at every book size. Whether every candidate can be bought that way
-was never measured, and a probe now gates the first paper order. The current state, the measurements and what comes next are in
+was never measured. Measured the same day: 0.70% of candidate-days are not
+fractionable, within the 5% line registered before the run. The current state, the measurements and what comes next are in
 `BRIEF.md` §0 and §2; this section is kept short so the two cannot disagree.
 
 ---

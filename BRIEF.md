@@ -60,9 +60,13 @@ real-money stage that runs the full specification.
 > execution path sends **fractional** share quantities at every book size, so a
 > $100 position in a $40 name is an order for 2.5 shares. The broker accepts
 > fractional orders only for names it flags as fractionable (**ASSUMED** from its
-> documentation). How many candidates carry that flag has never been measured.
-> A probe now gates the first paper order: if more than 5% of candidate-days are
-> not fractionable, paper waits until whole-share handling is decided.
+> documentation). How many candidates carry that flag had never been measured.
+> **Measured the same day: 0.70% of candidate-days are not fractionable** (3 of
+> 429, over 60 sessions), against a 5% line registered before the run. The
+> eligible band is 2% non-fractionable and the whole priced universe 39%, so
+> coverage is best where the strategy trades. The broker's minimum fractional
+> order size is not in its catalogue and is still unmeasured, so a book below
+> $12,000 remains unsettled.
 
 **Capital grows by raising the book size, never by topping up.** When money is
 added, new positions open at the larger size. Held positions keep their size
@@ -116,7 +120,7 @@ is backtest → paper → small live → scale.
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
 | **M2 — normalise → features** | **Complete.** Normalisation and the Tier A features both — filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge, the quarterly full index, insider transactions, earnings CAR and filing-language distance |
 | **M3 — backtest** | **Run: small, real in one half, never tested out of sample.** See §0. 53,152 logged trials across 134 registrations. The backtest now follows the live rule by default |
-| **M4 — paper** | **Built, never traded.** Risk gate, idempotent order log with the mode recorded and committed before each send, broker reconciliation that halts on any mismatch, a nightly chain that stops at its first failure, and a trading timer installed disabled. One dry run matched the backtest's candidates exactly. **Fractional order sizing is unmeasured against the broker's fractionable list; a probe gates the first paper order** (2026-11-21) |
+| **M4 — paper** | **Built, never traded.** Risk gate, idempotent order log with the mode recorded and committed before each send, broker reconciliation that halts on any mismatch, a nightly chain that stops at its first failure, and a trading timer installed disabled. One dry run matched the backtest's candidates exactly. **Fractional order sizing measured against the broker's fractionable list: 0.70% of candidate-days not fractionable, within the 5% line** (2026-11-21) |
 | M5–M6 — live | Not started. A written ladder of small real-money stages, each an explicit human decision |
 | Backtest harness | **Built and used.** Four arms, every run logged, both trial tables append-only by trigger |
 | Old repo | Archived. Not a reference for anything |
@@ -390,7 +394,7 @@ M5–M6 are not started.** *The M3 gate status was stated 2026-11-21; before tha
 this section listed M3 as run without saying whether it passed.*
 
 **Open before the first paper order, in order:** run the nightly chain once by
-hand, then the fractionability probe, then a few dry-run nights. Paper trading
+hand, re-run the fractionability probe on the current panel, then a few dry-run nights. Paper trading
 is then enabled by an explicit owner decision.
 
 **Five of the ten open questions gated M3**, and they are one question wearing
