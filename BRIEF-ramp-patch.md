@@ -1,3 +1,12 @@
+> **Applied 2026-11-21, with corrections. Do not re-apply.** Edits 1, 2, 5 and 6
+> went into `BRIEF.md` in corrected form, and edit 3 became a short "open before
+> the first paper order" list. **Edit 4's conflict does not exist.** Nothing in
+> the live path tops up a held position, so the ramp is the existing rule,
+> applied by raising the book size for new opens. The proposed invariant 23 is
+> left for the owner. Of the outstanding items: 1, 2, 3 and 4 are fixed as dated
+> corrections in `ARCHITECTURE.md`, and 5 stays open. The patch is kept as the
+> record of what was proposed.
+
 # Patch instructions for BRIEF.md — record the ramp decision
 
 **For:** Claude Code · **Target:** `BRIEF.md` (public docs repo) · **Date:** 2026-11-21

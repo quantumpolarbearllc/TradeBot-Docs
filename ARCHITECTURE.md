@@ -32,7 +32,9 @@ came from a backtest that could buy names it already held. Nothing is
 out-of-sample.
 
 **The execution path was built on that basis and has never placed an order**
-(§3, §5.10). The current state, the measurements and what comes next are in
+(§3, §5.10). *Added 2026-11-21:* it sizes every order as a fractional share
+quantity, at every book size. Whether every candidate can be bought that way
+was never measured, and a probe now gates the first paper order. The current state, the measurements and what comes next are in
 `BRIEF.md` §0 and §2; this section is kept short so the two cannot disagree.
 
 ---
@@ -81,11 +83,16 @@ earned.
 **M1 runs unattended and needs neither a model nor a human.** M3 is where the
 project either justifies continuing or does not.
 
-**M1 and M2 are complete. M3 has run** (§0). **M4 is built and has never
+**M1 and M2 are complete. M3 has run** (§0) **and its gate is not met**: the
+selection effect survives every cost model but appears in only one half of its
+own window, and an effect in one half of its sample is not dependable. *Stated
+2026-11-21; until then this section listed M3 as run without saying whether it
+passed.* M4 proceeds for operational validation only, which is the sole purpose
+the paper stage was given. **M4 is built and has never
 traded**: broker integration, idempotent order records, reconciliation, the risk
 gate and a nightly chain all exist, with the trading timer installed disabled.
 Until 2026-09-13 every HTTP call in the package was a `GET`; there is now
-exactly one `POST`. **M5 and M6 are not started** — each step up is a written,
+exactly one `POST`: order submission, in the broker client. **M5 and M6 are not started** — each step up is a written,
 explicit human decision.
 
 ## 4. Pipeline
@@ -196,7 +203,7 @@ limit on data that can never be tested.
 Raw payload → typed rows. Pure, deterministic, safe to re-run across the whole
 raw store when a parser improves. **Derived tables are disposable**: they carry
 no append-only protection and are rebuilt rather than patched, which is the
-division invariant 14 actually draws — raw ingest is immutable, everything
+division invariant 16 actually draws — raw ingest is immutable, everything
 downstream of it is not.
 
 Seven are built. **Filings** carry two timestamps, because the two EDGAR sources
@@ -615,6 +622,16 @@ rule with a narrower remainder.
    carries no symbol, so it fills only a link that already half exists. They are
    now 30% of the residual gap and need a source that dates symbol↔anything.
 6. **Universe selection beyond the screen — ANSWERED, and it is §0's result.**
+   > *Note, 2026-11-21.* The body below is the finding as first recorded,
+   > **across the whole eligible universe, before the cap band existed.** It is
+   > kept because the reasoning is the record. It is **superseded inside the
+   > band** by the 2026-10-04 disposition above: there, random draws from the
+   > signal set beat the universe control and both ranking rules. **The live
+   > selection rule is that one**: a random draw from the day's in-band
+   > candidates, seed registered before the account existed. Read side by side,
+   > the two paragraphs looked contradictory, and nothing here said which was
+   > current.
+
    The screen leaves far more eligible names than the target universe size, so
    something must rank and select, and that rule is where overfitting will live.
    This was the long-standing blocker for M3, measured at roughly 220 candidates
@@ -676,4 +693,8 @@ for the typed row derived from them, so keeping raw costs about half a gigabyte
 across the whole history: the saving the exception was trading for does not
 exist. It would also have been wrong on its own terms, since the adjusted price
 series is retroactively revised and re-fetching cannot recover what the vendor
-said on a past date. Invariant 14 stands with no exception.
+said on a past date. Invariant 16 stands with no exception.
+
+> *Corrected 2026-11-21:* this paragraph and §5.2 cited invariant 14 (malformed
+> model output) for the raw-immutable rule, which §6 numbers 16. Flagged
+> 2026-08-17 and left unfixed until now.

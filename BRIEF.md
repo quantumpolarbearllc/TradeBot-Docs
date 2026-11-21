@@ -51,9 +51,26 @@ IWM's 11.51%. Only the cost floor, quoted spread with no market impact, clears
 it: 11.92%. The book size and the cost constant are one parameter, so every
 figure names its book.
 
-**The paper stage will run a $12,000 book.** That is the smallest book that runs
-the full 120-position specification, at about $100 a position, and the size the
-first real-money stage with the full specification uses.
+**The paper stage will run a $12,000 book.** At about $100 a position, that was
+chosen as the smallest book where all 120 positions can hold at least one whole
+share of nearly every eligible name. It is also the size of the first
+real-money stage that runs the full specification.
+
+> **Correction, 2026-11-21.** That reasoning assumed orders in whole shares. The
+> execution path sends **fractional** share quantities at every book size, so a
+> $100 position in a $40 name is an order for 2.5 shares. The broker accepts
+> fractional orders only for names it flags as fractionable (**ASSUMED** from its
+> documentation). How many candidates carry that flag has never been measured.
+> A probe now gates the first paper order: if more than 5% of candidate-days are
+> not fractionable, paper waits until whole-share handling is decided.
+
+**Capital grows by raising the book size, never by topping up.** When money is
+added, new positions open at the larger size. Held positions keep their size
+until they exit at the end of the holding period, so the whole book catches up within one
+cycle. Nothing re-buys or resizes a held name, so this does not conflict with
+the live rule above. The backtest already sizes positions the same way.
+Position count stays at 120 throughout. A book below $12,000 depends on the
+same fractionability measurement.
 
 **The execution path now exists and has never placed an order** (§2). It was
 built because research had produced a candidate worth operating, under a
@@ -99,7 +116,7 @@ is backtest → paper → small live → scale.
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
 | **M2 — normalise → features** | **Complete.** Normalisation and the Tier A features both — filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge, the quarterly full index, insider transactions, earnings CAR and filing-language distance |
 | **M3 — backtest** | **Run: small, real in one half, never tested out of sample.** See §0. 53,152 logged trials across 134 registrations. The backtest now follows the live rule by default |
-| **M4 — paper** | **Built, never traded.** Risk gate, idempotent order log with the mode recorded and committed before each send, broker reconciliation that halts on any mismatch, a nightly chain that stops at its first failure, and a trading timer installed disabled. One dry run matched the backtest's candidates exactly |
+| **M4 — paper** | **Built, never traded.** Risk gate, idempotent order log with the mode recorded and committed before each send, broker reconciliation that halts on any mismatch, a nightly chain that stops at its first failure, and a trading timer installed disabled. One dry run matched the backtest's candidates exactly. **Fractional order sizing is unmeasured against the broker's fractionable list; a probe gates the first paper order** (2026-11-21) |
 | M5–M6 — live | Not started. A written ladder of small real-money stages, each an explicit human decision |
 | Backtest harness | **Built and used.** Four arms, every run logged, both trial tables append-only by trigger |
 | Old repo | Archived. Not a reference for anything |
@@ -366,8 +383,15 @@ Desktop session reading this file: a plausible number is not a finding.
 | M4 | Paper execution | Live tracks paper |
 | M5–M6 | Capped live, then live | — |
 
-**M1 and M2 are complete; M3 has run (§0); M4 is built and has never traded;
-M5–M6 are not started.**
+**M1 and M2 are complete; M3 has run (§0) and its gate is not met: the effect
+survives every cost model but appears in only one half of its window. M4 is
+built and has never traded, and proceeds for operational validation only.
+M5–M6 are not started.** *The M3 gate status was stated 2026-11-21; before that
+this section listed M3 as run without saying whether it passed.*
+
+**Open before the first paper order, in order:** run the nightly chain once by
+hand, then the fractionability probe, then a few dry-run nights. Paper trading
+is then enabled by an explicit owner decision.
 
 **Five of the ten open questions gated M3**, and they are one question wearing
 different clothes: *which securities exist, which are eligible, and which can be
@@ -449,7 +473,7 @@ decision defended up front.
 
 ## 6. Decisions made — do not re-litigate
 
-133 decisions are recorded with full reasoning in `DECISIONS.md`
+134 decisions are recorded with full reasoning in `DECISIONS.md`
 (private repo). Headlines: start fresh · small caps · filings-primary · daily
 rebalance · 120 names (originally 40–60) · **no model in v1** · backtest-first · turnover as a
 budgeted constraint · buffer zones on universe thresholds · terminal events
@@ -460,7 +484,9 @@ phased and newest-first · historical universe reconstructed from EDGAR
 full-index · window fixed at 2016-01-04 by bar history · raw payloads stored for
 every feed with no exception · price the whole symbol union and filter later ·
 the daily job reads an index rather than sweeping · derived tables are
-disposable and rebuilt, raw never is.
+disposable and rebuilt, raw never is · **capital ramps by raising the book size
+for new opens, never by topping up held positions; position count stays 120**
+(2026-11-21).
 
 **Several conclusions reversed earlier ones during design.** They are recorded
 as reversals because the reasoning matters — including that small caps are not
@@ -494,9 +520,11 @@ appear here.
 | **`BRIEF.md`** | This file — current state, read first |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Pipeline, components, the 22 invariants |
 
-Three further documents live in the **private code repo**: `FEEDS.md` (measured
-API behaviour), `DECISIONS.md` (dated log with full reasoning), and
-`RESEARCH.md` (literature with design implications). Their conclusions are
+Four further documents live in the **private code repo**: `FEEDS.md` (measured
+API behaviour), `DECISIONS.md` (dated log with full reasoning),
+`RESEARCH.md` (literature with design implications), and `RAMP.md` (the capital
+ramp proposal, kept as drafted, with its disposition and corrections at the
+top). Their conclusions are
 summarised above, so you do not need them to be current — ask for a paste if
 you want the underlying detail.
 
