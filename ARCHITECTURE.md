@@ -1,6 +1,6 @@
 # Architecture
 
-**Status:** M3 run — not stable, never tested out of sample; M4 built, never traded · **Last updated:** 2026-10-04
+**Status:** M3 run — small, real in one half, never tested out of sample; M4 built, never traded · **Last updated:** 2026-11-21
 
 A daily-rebalance research and execution system for **US small-cap equities**,
 built filings-first. This document is the wireframe: what the pieces are, why
@@ -14,7 +14,7 @@ says so.
 
 ---
 
-## 0. Result — not stable, and never tested out of sample
+## 0. Result — small, real in one half, and never tested out of sample
 
 > **Correction, 2026-10-04.** From 2026-09-08 this section said M3's one
 > positive result was "a pooling artifact". That was withdrawn on 2026-09-10 —
@@ -24,8 +24,12 @@ says so.
 **Inside the specified small-cap band, the signal set beats random selection
 from the same universe, at every cost model tested — but only in 2021-2026, not
 2016-2020.** That is not dependable, and a power calculation shows no live stage
-could settle it on returns. Against the index the strategy is capital-bounded:
-it clears IWM up to roughly a $1M book and not at $5M. Nothing is out-of-sample.
+could settle it on returns. Under the live rule (no re-buying a held name) and
+a one-session fill delay, the margin is **+0.60 to +0.80pp/yr**, and **no sized
+book clears IWM** ($250k: 11.21 against 11.51). *Corrected 2026-11-21:* this
+section previously said the strategy cleared IWM up to about $1M. That figure
+came from a backtest that could buy names it already held. Nothing is
+out-of-sample.
 
 **The execution path was built on that basis and has never placed an order**
 (§3, §5.10). The current state, the measurements and what comes next are in

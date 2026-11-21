@@ -1,6 +1,6 @@
 # BRIEF — read this first
 
-**Last updated:** 2026-10-04 · **Phase:** M3 has run — **not stable, and never tested out of sample**; the execution path is built and has never traded; a data catch-up is in progress
+**Last updated:** 2026-11-21 · **Phase:** M3 has run — **small, real in one half, and never tested out of sample**; the execution path is built and has never traded; the data catch-up is done but for one run of the nightly chain by hand
 
 This file exists so a Claude Desktop session (or any collaborator) can get
 fully current in one read, with no prior context and nothing pasted in.
@@ -19,25 +19,41 @@ in — see §8.
 > signal, and this public copy went four weeks without the correction. The
 > private decision log carried it the whole time; this file did not.
 
-**The answer is not "no". It is "not stable, and never tested out of sample".**
+> **Correction, 2026-11-21.** Until today this section said the strategy
+> "clears IWM up to roughly a $1M book". That was measured with a rule the live
+> system cannot follow: the backtest could buy a name it already held. Under the
+> live rule, at live's fill delay, **no book size tested clears the index.**
+> The figures below replace it.
+
+**The answer is not "no". It is "small, real in one half, and never tested out
+of sample".**
 
 Restricted to the small-cap band the system is specified for, the signal set
 beats random selection from the same eligible universe — across six cost models
 spanning a tenfold range, because the two arms turn over at the same rate and
-cost cancels in the difference. **But the effect is ~0 in 2016-2020 and ~+4pp
-in 2021-2026.** An effect present in one half of its own sample is not
+cost cancels in the difference. **But under the original backtest rule the
+effect was ~0 in 2016-2020 and ~+4pp in 2021-2026.** An effect present in one half of its own sample is not
 dependable, and a power calculation says the period split could never have told
 either way: distinguishing this effect from zero on live returns would take
 over twenty years.
 
-**Against the index, capital decides.** At measured spreads plus estimated
-impact the strategy clears IWM up to roughly a $1M book on the full window, and
-not at $5M. The book size and the cost constant turned out to be one parameter,
-and only one of them had ever been written down.
+**Then the backtest was made to trade the way live can, and half the effect
+went.** The backtest had been re-buying names it already held: 37% of the
+signal arm's opens. Live cannot do that. Refusing them keeps **44-49%** of the
+selection effect. With that rule and a one-session fill delay together, the
+signal set beats random selection by **+0.60 to +0.80 percentage points a
+year** across six cost models. Before, it was +2.10 to +2.36. By half, it is
+now −0.52 to −0.75 in 2016-2020 and +1.66 to +1.96 in 2021-2026.
 
-**A fill-delay cost was measured** before anything traded: about 0.3-0.45
-percentage points a year per session between decision and fill. A cost, not a
-cliff.
+**Against the index, no sized book clears it at live's delay.** The signal
+arm's median is 11.21%/yr at $250k, 10.63% at $1M and 8.88% at $5M, against
+IWM's 11.51%. Only the cost floor, quoted spread with no market impact, clears
+it: 11.92%. The book size and the cost constant are one parameter, so every
+figure names its book.
+
+**The paper stage will run a $12,000 book.** That is the smallest book that runs
+the full 120-position specification, at about $100 a position, and the size the
+first real-money stage with the full specification uses.
 
 **The execution path now exists and has never placed an order** (§2). It was
 built because research had produced a candidate worth operating, under a
@@ -54,8 +70,9 @@ each has a test written to fail first.
 
 **If you are asked what to do next:** not a new signal family, cap band,
 horizon or ranker — the selection space is already large. The open items are
-operational (a data catch-up, then the nightly chain, then paper), plus one
-pre-registered fidelity test. **There is still no out-of-sample test of any
+operational: run the nightly chain once by hand, then dry-run nights, then
+paper. Four normalisers take 5h27m of the chain's 10h45m window and are being
+made incremental. Every pre-registered test has run. **There is still no out-of-sample test of any
 kind**; a genuine one needs pre-2016 delisted-inclusive price data this project
 does not hold.
 
@@ -75,13 +92,13 @@ is backtest → paper → small live → scale.
 
 | | Status |
 |---|---|
-| Design | **Complete** through the 129th decision. The ten open questions now carry dispositions — one is answered, one is partly answered, the rest are moot rather than resolved — see §5 |
+| Design | **Complete** through the 133rd decision. The ten open questions now carry dispositions — one is answered, one is partly answered, the rest are moot rather than resolved — see §5 |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
-| Droplet | Hardened, 100 GB volume, stack running. **Nightly timer paused** while a data catch-up runs |
+| Droplet | Hardened, 100 GB volume, stack running. **Nightly timer paused.** The catch-up is done, except for the first run of the nightly chain by hand |
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
 | **M2 — normalise → features** | **Complete.** Normalisation and the Tier A features both — filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge, the quarterly full index, insider transactions, earnings CAR and filing-language distance |
-| **M3 — backtest** | **Run: not stable, and never tested out of sample.** See §0. 38,644 logged trials across 98 registrations |
+| **M3 — backtest** | **Run: small, real in one half, never tested out of sample.** See §0. 53,152 logged trials across 134 registrations. The backtest now follows the live rule by default |
 | **M4 — paper** | **Built, never traded.** Risk gate, idempotent order log with the mode recorded and committed before each send, broker reconciliation that halts on any mismatch, a nightly chain that stops at its first failure, and a trading timer installed disabled. One dry run matched the backtest's candidates exactly |
 | M5–M6 — live | Not started. A written ladder of small real-money stages, each an explicit human decision |
 | Backtest harness | **Built and used.** Four arms, every run logged, both trial tables append-only by trigger |
@@ -432,7 +449,7 @@ decision defended up front.
 
 ## 6. Decisions made — do not re-litigate
 
-129 decisions are recorded with full reasoning in `DECISIONS.md`
+133 decisions are recorded with full reasoning in `DECISIONS.md`
 (private repo). Headlines: start fresh · small caps · filings-primary · daily
 rebalance · 120 names (originally 40–60) · **no model in v1** · backtest-first · turnover as a
 budgeted constraint · buffer zones on universe thresholds · terminal events
