@@ -393,8 +393,12 @@ built and has never traded, and proceeds for operational validation only.
 M5–M6 are not started.** *The M3 gate status was stated 2026-11-21; before that
 this section listed M3 as run without saying whether it passed.*
 
-**Open before the first paper order, in order:** run the nightly chain once by
-hand, re-run the fractionability probe on the current panel, then a few dry-run nights. Paper trading
+**Open before the first paper order, in order:** a ranged catch-up of the raw
+feeds, then the nightly chain once by hand, then the fractionability probe
+re-run on the current panel, then a few dry-run nights. *Corrected 2026-11-21:*
+the nightly chain had been described as bringing the feeds' ten-week gap
+forward. It reaches back only days for prices, and would have left a two-month
+hole that its own health gate does not look far enough back to see. Paper trading
 is then enabled by an explicit owner decision.
 
 **Five of the ten open questions gated M3**, and they are one question wearing
