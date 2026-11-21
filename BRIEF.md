@@ -398,7 +398,11 @@ feeds, then the nightly chain once by hand, then the fractionability probe
 re-run on the current panel, then a few dry-run nights. *Corrected 2026-11-21:*
 the nightly chain had been described as bringing the feeds' ten-week gap
 forward. It reaches back only days for prices, and would have left a two-month
-hole that its own health gate does not look far enough back to see. Paper trading
+hole that its own health gate did not look far enough back to see. Fixed the
+same day: the nightly fetch now refuses, before fetching anything, when a feed
+is further behind than it reaches. A storage budget being exceeded also no
+longer stops the chain. That was always meant to be a warning, and it would
+have halted every night. Paper trading
 is then enabled by an explicit owner decision.
 
 **Five of the ten open questions gated M3**, and they are one question wearing
