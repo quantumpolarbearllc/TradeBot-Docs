@@ -64,7 +64,8 @@ real-money stage that runs the full specification.
 > **Measured the same day: 0.70% of candidate-days are not fractionable** (3 of
 > 429, over 60 sessions), against a 5% line registered before the run. The
 > eligible band is 2% non-fractionable and the whole priced universe 39%, so
-> coverage is best where the strategy trades. The broker's minimum fractional
+> coverage is best where the strategy trades. Re-run on 2026-11-24 against the
+> current panel, it measured **0.96%**, also within the line. The broker's minimum fractional
 > order size is not in its catalogue and is still unmeasured, so a book below
 > $12,000 remains unsettled.
 
@@ -393,9 +394,10 @@ built and has never traded, and proceeds for operational validation only.
 M5–M6 are not started.** *The M3 gate status was stated 2026-11-21; before that
 this section listed M3 as run without saying whether it passed.*
 
-**Open before the first paper order, in order:** a ranged catch-up of the raw
-feeds, then the nightly chain once by hand, then the fractionability probe
-re-run on the current panel, then a few dry-run nights. *Corrected 2026-11-21:*
+**Open before the first paper order:** a few dry-run nights. The ranged
+catch-up, the nightly chain run by hand and the fractionability re-run are
+done (2026-11-24). The panel is current to 2026-11-20 and the nightly timer is
+on. Paper trading then starts only on an explicit owner decision. *Corrected 2026-11-21:*
 the nightly chain had been described as bringing the feeds' ten-week gap
 forward. It reaches back only days for prices, and would have left a two-month
 hole that its own health gate did not look far enough back to see. Fixed the
