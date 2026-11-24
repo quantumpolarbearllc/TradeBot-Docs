@@ -93,8 +93,10 @@ each has a test written to fail first.
 **If you are asked what to do next:** not a new signal family, cap band,
 horizon or ranker — the selection space is already large. The open items are
 operational: run the nightly chain once by hand, then dry-run nights, then
-paper. Four normalisers take 5h27m of the chain's 10h45m window and are being
-made incremental. Every pre-registered test has run. **There is still no out-of-sample test of any
+paper. Four normalisers took most of the night, and are being made to read only
+what is new. The largest, the activist-stake pass, now does: it had been
+re-reading all 2.1 million stored filing documents every night to find the 14%
+that are stake disclosures (2026-11-24). Bars, language and insider remain. Every pre-registered test has run. **There is still no out-of-sample test of any
 kind**; a genuine one needs pre-2016 delisted-inclusive price data this project
 does not hold.
 
