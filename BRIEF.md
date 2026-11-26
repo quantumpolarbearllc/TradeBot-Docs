@@ -99,7 +99,8 @@ re-reading all 2.1 million stored filing documents every night to find the 14%
 that are stake disclosures (2026-11-24). The price pass now does too: it had
 been rewriting every stored bar each night (2026-11-25). So does the
 filing-language pass, which now re-reads only companies that filed a new annual
-report (2026-11-26). Insider remains. Every pre-registered test has run. **There is still no out-of-sample test of any
+report, and the insider pass (2026-11-26). All four are built and tested but not
+yet deployed. Together they were almost six hours of the catch-up night. Every pre-registered test has run. **There is still no out-of-sample test of any
 kind**; a genuine one needs pre-2016 delisted-inclusive price data this project
 does not hold.
 
