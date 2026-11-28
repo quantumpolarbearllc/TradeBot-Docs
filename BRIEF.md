@@ -99,8 +99,24 @@ re-reading all 2.1 million stored filing documents every night to find the 14%
 that are stake disclosures (2026-11-24). The price pass now does too: it had
 been rewriting every stored bar each night (2026-11-25). So does the
 filing-language pass, which now re-reads only companies that filed a new annual
-report, and the insider pass (2026-11-26). All four are built and tested but not
-yet deployed. Together they were almost six hours of the catch-up night. Every pre-registered test has run. **There is still no out-of-sample test of any
+report, and the insider pass (2026-11-26). All four were deployed on
+2026-11-26/27 and are not yet measured on a normal night. Together they were
+almost six hours of the catch-up night.
+
+> **Found 2026-11-28: the nightly chain had stopped receiving new filings.**
+> The SEC publishes its daily filing index at about 22:01 US Eastern. In UTC
+> that time moves with daylight saving: 02:01 in summer, 03:01 in winter. The
+> chain fired at 02:15 UTC, a time set from three August samples. After the
+> clocks changed it asked 45 minutes early. It stored the refusal as "no index
+> for that day" and never asked again. Filings stopped at 2026-11-23 for three
+> nights while the status check passed. No order was affected, because trading
+> is not enabled. The fix re-asks any refusal that came before the index could
+> exist and moves the chain to 03:30 UTC. It is written and tested but not yet
+> deployed. The two lost business days are recovered automatically once it is
+> deployed. The dry runs on those nights planned on stale filings, so they do
+> not count as fidelity records.
+
+Every pre-registered test has run. **There is still no out-of-sample test of any
 kind**; a genuine one needs pre-2016 delisted-inclusive price data this project
 does not hold.
 
@@ -120,10 +136,10 @@ is backtest → paper → small live → scale.
 
 | | Status |
 |---|---|
-| Design | **Complete** through the 133rd decision. The ten open questions now carry dispositions — one is answered, one is partly answered, the rest are moot rather than resolved — see §5 |
+| Design | **Complete** through the 140th decision. The ten open questions now carry dispositions — one is answered, one is partly answered, the rest are moot rather than resolved — see §5 |
 | Feed measurement | **Complete** — five feeds measured against live APIs |
 | Literature review | **Complete** |
-| Droplet | Hardened, 100 GB volume, stack running. **Nightly timer paused.** The catch-up is done, except for the first run of the nightly chain by hand |
+| Droplet | Hardened, 100 GB volume, stack running. **Nightly timer running since 2026-11-24; trading timer installed disabled.** *Corrected 2026-11-28:* this row still said the timer was paused after it had been enabled. From 11-25 to 11-28 the nightly chain ran without new filings (§0) |
 | **M1 — ingest → raw store** | **Complete.** Both feeds backfilled, arriving daily, gaps visible |
 | **M2 — normalise → features** | **Complete.** Normalisation and the Tier A features both — filings, bars, corporate actions, 13(f) share classes, security identity, the 13D/G CUSIP↔CIK edge, the quarterly full index, insider transactions, earnings CAR and filing-language distance |
 | **M3 — backtest** | **Run: small, real in one half, never tested out of sample.** See §0. 53,152 logged trials across 134 registrations. The backtest now follows the live rule by default |
